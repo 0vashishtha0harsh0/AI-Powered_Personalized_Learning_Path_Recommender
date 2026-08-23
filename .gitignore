@@ -1,0 +1,43 @@
+# Raw & processed data - too large / licensed, don't commit
+Data/raw/
+Data/interim/
+Data/processed/
+Data/careers/
+Data/skills/
+data/raw/
+data/interim/
+data/processed/
+
+# Embeddings - large binary files
+embeddings/
+*.npy
+*.faiss
+
+# Jupyter
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Env secrets
+.env
+*.env.local
+
+# Node (for React frontend later)
+node_modules/
+dist/
+build/
+
+# Logs
+*.log
