@@ -1,54 +1,45 @@
 """
-STEP 5: PERSONALIZED LEARNING PATH RECOMMENDATION ENGINE
+STEP 5: AI-Powered Personalized Learning Path Recommendation Engine
 
 Pipeline:
 
-    Learner Goal
+1. Learner free-text goal
         ↓
-    Goal -> O*NET Occupation
+2. O*NET career-profile semantic matching
         ↓
-    Target occupation is NEVER discarded merely because one
-    skill-data source is missing.
+3. O*NET career profile
         ↓
-    O*NET Skill Profile
+4. ESCO fine-grained skill inference
         ↓
-    ESCO Skill Profile
+5. Learner skill matching
         ↓
-    If O*NET skill survey is unavailable:
-        occupation text -> ESCO semantic skill inference
+6. Skill gap analysis
         ↓
-    Goal-specific ESCO skill extraction
+7. Course recommendation
         ↓
-    Learner Known Skills
-        ↓
-    Weighted Skill Gap
-        ↓
-    Course -> Skill matching
-        ↓
-    Course ranking
-        ↓
-    Diversity / duplicate control
-        ↓
-    Milestone roadmap
-        ↓
-    Explainable recommendations
+8. Milestone-based roadmap
 
-This version is intentionally data-driven.
-It does NOT hardcode:
-    Data Scientist -> Python
-    Data Scientist -> SQL
-    etc.
+O*NET profile includes:
+- Skills
+- Knowledge
+- Abilities
+- Work Activities
+- Tasks
+- Technology
+- Tools
+- Work Styles
+- Work Values
+- Education / Training
+- Job Zone
+- Related Occupations
+- Alternate Titles
+- Reported Titles
 
-Instead, skills are derived from:
-    O*NET
-    ESCO
-    occupation descriptions
-    learner goal
-    course skill mappings
+This version keeps the existing ESCO + course recommendation pipeline
+and upgrades occupation matching using the complete O*NET career profile.
 """
 
 import os
-import re
 from pathlib import Path
 
 import numpy as np
@@ -57,7 +48,7 @@ from sentence_transformers import SentenceTransformer
 
 
 # ============================================================
-# PROJECT PATHS
+# PATHS
 # ============================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -76,47 +67,33 @@ CAREER_EMB.mkdir(parents=True, exist_ok=True)
 
 
 # ============================================================
-# CONFIGURATION
-# ============================================================
-
-MODEL_NAME = "all-mpnet-base-v2"
-
-# Goal -> occupation
-DEFAULT_TOP_OCCUPATIONS = 5
-
-# Goal/occupation -> ESCO skill semantic matching
-GOAL_SKILL_THRESHOLD = 0.38
-OCCUPATION_SKILL_THRESHOLD = 0.30
-
-# Learner known skill matching is deliberately stricter.
-LEARNER_SKILL_THRESHOLD = 0.72
-
-# O*NET -> ESCO crosswalk
-CROSSWALK_THRESHOLD = 0.35
-
-# Maximum number of target skills
-DEFAULT_TARGET_SKILLS = 30
-
-# Number of final roadmap gaps
-DEFAULT_TOP_GAPS = 12
-
-# Courses per skill before final ranking
-COURSES_PER_SKILL = 5
-
-
-# ============================================================
 # LOAD DATA
 # ============================================================
 
 print("Loading data...")
 
-occupations = pd.read_csv(
-    CAREER_DATA / "occupations.csv"
-)
+# ------------------------------------------------------------
+# O*NET career profiles
+# ------------------------------------------------------------
 
-occ_scores = pd.read_csv(
-    CAREER_DATA / "occupation_element_scores.csv"
-)
+career_profiles_path = CAREER_DATA / "onet_career_profiles.csv"
+
+if not career_profiles_path.exists():
+    raise FileNotFoundError(
+        f"\nO*NET career profile file not found:\n"
+        f"{career_profiles_path}\n\n"
+        f"Run:\n"
+        f"python src/preprocessing/build_onet_career_profiles.py"
+    )
+
+career_profiles = pd.read_csv(career_profiles_path)
+
+print(f"Loaded O*NET career profiles: {career_profiles.shape}")
+
+
+# ------------------------------------------------------------
+# Existing processed datasets
+# ------------------------------------------------------------
 
 crosswalk = pd.read_csv(
     SKILL_DATA / "esco_onet_crosswalk.csv"
@@ -136,262 +113,245 @@ courses = pd.read_csv(
 
 
 # ============================================================
-# NORMALIZE BASIC DATA TYPES
-# ============================================================
-
-for df in [
-    occupations,
-    occ_scores,
-    crosswalk,
-    skills_taxonomy,
-    course_skills,
-    courses,
-]:
-    df.columns = [str(c).strip() for c in df.columns]
-
-
-# ============================================================
-# SENTENCE TRANSFORMER
+# MODEL
 # ============================================================
 
 print("Loading embedding model...")
 
-model = SentenceTransformer(MODEL_NAME)
+model = SentenceTransformer("all-mpnet-base-v2")
 
 
 # ============================================================
-# OCCUPATION EMBEDDINGS
+# INDEXES
 # ============================================================
 
-occ_emb_path = CAREER_EMB / "occupation_embeddings.npy"
-occ_ids_path = CAREER_EMB / "occupation_ids.csv"
+print("Building skill indexes...")
 
-
-if not occ_emb_path.exists():
-
-    print("Building occupation embeddings (one-time)...")
-
-    occ_text = (
-        occupations["title"].fillna("").astype(str)
-        + ": "
-        + occupations["description"].fillna("").astype(str)
-    ).tolist()
-
-    occ_emb = model.encode(
-        occ_text,
-        normalize_embeddings=True,
-        show_progress_bar=True
-    )
-
-    np.save(occ_emb_path, occ_emb)
-
-    occupations[["onet_soc_code"]].to_csv(
-        occ_ids_path,
-        index=False
-    )
-
-else:
-
-    occ_emb = np.load(occ_emb_path)
-
-
-occ_ids_order = pd.read_csv(
-    occ_ids_path
-)["onet_soc_code"].tolist()
-
-occ_lookup = occupations.set_index("onet_soc_code")
-
-
-# ============================================================
-# ESCO SKILL EMBEDDINGS
-# ============================================================
-
-esco_skill_ids_order = pd.read_csv(
-    SKILL_EMB / "esco_skill_ids.csv"
-)["skill_id"].tolist()
-
-esco_skill_emb = np.load(
-    SKILL_EMB / "esco_skill_embeddings.npy"
-)
-
-esco_skill_id_to_row = {
-    sid: i
-    for i, sid in enumerate(esco_skill_ids_order)
-}
 
 skills_lookup = skills_taxonomy.set_index("skill_id")
 
-
-# ============================================================
-# PRE-GROUP DATA
-# ============================================================
-
-crosswalk_by_element = {
-    eid: grp
-    for eid, grp in crosswalk.groupby("onet_element_id")
-}
 
 course_skills_by_skill = {
     sid: grp
     for sid, grp in course_skills.groupby("skill_id")
 }
 
+
 courses_lookup = courses.set_index("course_id")
 
 
 # ============================================================
-# O*NET DISTINCTIVENESS BASELINE
+# HELPER
 # ============================================================
 
-element_baseline = (
-    occ_scores
-    .dropna(subset=["importance"])
-    .groupby("element_id", as_index=False)["importance"]
-    .mean()
-    .rename(
-        columns={
-            "importance": "baseline_importance"
-        }
-    )
-)
-
-occ_scores = occ_scores.merge(
-    element_baseline,
-    on="element_id",
-    how="left"
-)
-
-
-# ============================================================
-# TEXT NORMALIZATION
-# ============================================================
-
-def normalize_text(text):
+def clean_text(value):
     """
-    Lightweight normalization for comparison only.
-    Original text is never modified in the datasets.
+    Convert NaN / None / non-string values into clean strings.
     """
-
-    if pd.isna(text):
+    if pd.isna(value):
         return ""
 
-    text = str(text).lower()
+    return str(value).strip()
 
-    text = re.sub(
-        r"[^a-z0-9\s]",
-        " ",
-        text
+
+def combine_profile_text(row):
+    """
+    Convert one complete O*NET career profile into semantic text.
+
+    The profile builder creates columns such as:
+
+    skills
+    knowledge
+    abilities
+    work_activities
+    tasks
+    technology
+    tools
+    work_styles
+    work_values
+    education_training
+    job_zone
+    related_occupations
+    emerging_tasks
+    alternate_titles
+    reported_titles
+
+    We deliberately weight important career signals by repeating
+    selected sections.
+    """
+
+    title = clean_text(row.get("title", ""))
+    description = clean_text(row.get("description", ""))
+
+    skills = clean_text(row.get("skills", ""))
+    knowledge = clean_text(row.get("knowledge", ""))
+    abilities = clean_text(row.get("abilities", ""))
+    activities = clean_text(row.get("work_activities", ""))
+    tasks = clean_text(row.get("tasks", ""))
+    technology = clean_text(row.get("technology", ""))
+    tools = clean_text(row.get("tools", ""))
+    work_styles = clean_text(row.get("work_styles", ""))
+    work_values = clean_text(row.get("work_values", ""))
+    education = clean_text(row.get("education_training", ""))
+    job_zone = clean_text(row.get("job_zone", ""))
+    related = clean_text(row.get("related_occupations", ""))
+    emerging = clean_text(row.get("emerging_tasks", ""))
+    alternate = clean_text(row.get("alternate_titles", ""))
+    reported = clean_text(row.get("reported_titles", ""))
+
+    text = f"""
+Occupation: {title}
+
+Description:
+{description}
+
+Skills:
+{skills}
+
+Knowledge:
+{knowledge}
+
+Abilities:
+{abilities}
+
+Work Activities:
+{activities}
+
+Tasks:
+{tasks}
+
+Technology:
+{technology}
+
+Tools:
+{tools}
+
+Work Styles:
+{work_styles}
+
+Work Values:
+{work_values}
+
+Education, Training and Experience:
+{education}
+
+Job Zone:
+{job_zone}
+
+Related Occupations:
+{related}
+
+Emerging Tasks:
+{emerging}
+
+Alternate Titles:
+{alternate}
+
+Reported Job Titles:
+{reported}
+"""
+
+    return " ".join(text.split())
+
+
+# ============================================================
+# BUILD / LOAD CAREER EMBEDDINGS
+# ============================================================
+
+career_emb_path = CAREER_EMB / "onet_career_profile_embeddings.npy"
+career_ids_path = CAREER_EMB / "onet_career_profile_ids.csv"
+
+
+def build_career_embeddings():
+    """
+    Build embeddings using the COMPLETE O*NET career profile.
+    """
+
+    print("\nBuilding O*NET career profile embeddings...")
+
+    profile_texts = []
+
+    for _, row in career_profiles.iterrows():
+        profile_texts.append(
+            combine_profile_text(row)
+        )
+
+    embeddings = model.encode(
+        profile_texts,
+        normalize_embeddings=True,
+        show_progress_bar=True,
+        batch_size=32,
     )
 
-    text = re.sub(
-        r"\s+",
-        " ",
-        text
-    ).strip()
+    np.save(
+        career_emb_path,
+        embeddings,
+    )
 
-    return text
+    career_profiles[
+        ["onet_soc_code"]
+    ].to_csv(
+        career_ids_path,
+        index=False,
+    )
 
+    print(
+        f"Saved career embeddings: {career_emb_path}"
+    )
 
-# ============================================================
-# SKILL LABEL LOOKUP
-# ============================================================
-
-def get_skill_label(skill_id):
-    row = skills_lookup.loc[skill_id]
-
-    if isinstance(row, pd.DataFrame):
-        row = row.iloc[0]
-
-    return row["skill_label"]
+    return embeddings
 
 
-# ============================================================
-# SEMANTIC SKILL MATCHING
-# ============================================================
-
-def semantic_skill_search(
-    text,
-    top_n=20,
-    threshold=0.35
+if (
+    not career_emb_path.exists()
+    or not career_ids_path.exists()
 ):
-    """
-    Maps free text to ESCO skills using semantic embeddings.
 
-    Returns:
-        skill_id
-        skill_label
-        similarity
-    """
+    career_embeddings = build_career_embeddings()
 
-    if not text:
-        return pd.DataFrame(
-            columns=[
-                "skill_id",
-                "skill_label",
-                "similarity"
-            ]
-        )
+else:
 
-    query_embedding = model.encode(
-        [text],
-        normalize_embeddings=True
-    )[0]
+    print("Loading existing O*NET career embeddings...")
 
-    similarities = (
-        esco_skill_emb @ query_embedding
+    career_embeddings = np.load(
+        career_emb_path
     )
-
-    top_indices = np.argsort(
-        -similarities
-    )[:top_n]
-
-    rows = []
-
-    for idx in top_indices:
-
-        similarity = float(
-            similarities[idx]
-        )
-
-        if similarity < threshold:
-            continue
-
-        skill_id = esco_skill_ids_order[idx]
-
-        rows.append(
-            {
-                "skill_id": skill_id,
-                "skill_label": get_skill_label(skill_id),
-                "similarity": similarity
-            }
-        )
-
-    return pd.DataFrame(rows)
 
 
 # ============================================================
-# 1. GOAL -> OCCUPATION
+# CAREER ID ORDER
+# ============================================================
+
+career_ids_order = pd.read_csv(
+    career_ids_path
+)["onet_soc_code"].tolist()
+
+
+career_lookup = career_profiles.set_index(
+    "onet_soc_code"
+)
+
+
+# ============================================================
+# 1. GOAL -> O*NET CAREER MATCHING
 # ============================================================
 
 def match_goal_to_occupation(
     goal_text,
-    top_k=DEFAULT_TOP_OCCUPATIONS
+    top_k=5,
 ):
     """
-    Maps learner's free-text goal to O*NET occupations.
-
-    IMPORTANT:
-    Occupation relevance is independent from availability
-    of O*NET survey data.
+    Match learner's free-text goal against COMPLETE O*NET
+    career profiles.
     """
 
     query_embedding = model.encode(
         [goal_text],
-        normalize_embeddings=True
+        normalize_embeddings=True,
     )[0]
 
     similarities = (
-        occ_emb @ query_embedding
+        career_embeddings @ query_embedding
     )
 
     top_indices = np.argsort(
@@ -402,18 +362,17 @@ def match_goal_to_occupation(
 
     for idx in top_indices:
 
-        soc = occ_ids_order[idx]
+        soc = career_ids_order[idx]
+
+        row = career_lookup.loc[soc]
 
         results.append(
             {
                 "onet_soc_code": soc,
-                "title": occ_lookup.loc[
-                    soc,
-                    "title"
-                ],
+                "title": row["title"],
                 "similarity": float(
                     similarities[idx]
-                )
+                ),
             }
         )
 
@@ -421,543 +380,413 @@ def match_goal_to_occupation(
 
 
 # ============================================================
-# 2. O*NET -> ESCO SKILL PROFILE
+# 2. SEMANTIC ESCO SKILL INFERENCE
 # ============================================================
 
-def get_onet_skill_profile(
-    onet_soc_code,
-    min_crosswalk_similarity=CROSSWALK_THRESHOLD,
-    top_n=DEFAULT_TARGET_SKILLS,
-    verbose=False
+esco_skill_ids_order = pd.read_csv(
+    SKILL_EMB / "esco_skill_ids.csv"
+)["skill_id"].tolist()
+
+
+esco_skill_emb = np.load(
+    SKILL_EMB / "esco_skill_embeddings.npy"
+)
+
+
+esco_skill_id_to_row = {
+    sid: i
+    for i, sid in enumerate(
+        esco_skill_ids_order
+    )
+}
+
+
+def infer_target_esco_skills(
+    occupation_code,
+    top_n=25,
 ):
     """
-    Converts O*NET occupation element scores to ESCO skills.
+    Infer fine-grained ESCO skills from the COMPLETE
+    O*NET career profile.
 
-    Returns empty DataFrame when no O*NET survey rows exist.
-    The caller decides whether to use a semantic fallback.
+    Uses semantic similarity between the occupation profile
+    and ESCO skill taxonomy.
+
+    Also uses skill metadata to slightly favour:
+    - digital skills
+    - research skills
+    - demand frequency
+    - fit score
     """
 
-    empty = pd.DataFrame(
-        columns=[
-            "skill_id",
-            "weight",
-            "skill_label",
-            "source"
-        ]
-    )
+    if occupation_code not in career_lookup.index:
 
-    occ_rows = (
-        occ_scores[
-            occ_scores["onet_soc_code"]
-            == onet_soc_code
-        ]
-        .dropna(subset=["importance"])
-    )
-
-    if verbose:
-        print(
-            f"    [debug] O*NET rows for "
-            f"{onet_soc_code}: {len(occ_rows)}"
+        return pd.DataFrame(
+            columns=[
+                "skill_id",
+                "skill_label",
+                "weight",
+                "source",
+            ]
         )
 
-    if len(occ_rows) == 0:
-        return empty
-
-    skill_weight = {}
-
-    for _, row in occ_rows.iterrows():
-
-        imp_norm = (
-            row["importance"] / 5.0
-        )
-
-        lvl_norm = (
-            row["level"] / 7.0
-            if pd.notna(row["level"])
-            else 0.5
-        )
-
-        baseline = (
-            row["baseline_importance"]
-            if pd.notna(row["baseline_importance"])
-            else row["importance"]
-        )
-
-        distinctiveness_norm = max(
-            row["importance"] - baseline,
-            0
-        ) / 5.0
-
-        element_weight = (
-            imp_norm * 0.25
-            + lvl_norm * 0.25
-            + distinctiveness_norm * 0.50
-        )
-
-        matches = crosswalk_by_element.get(
-            row["element_id"]
-        )
-
-        if matches is None:
-            continue
-
-        confident_matches = matches[
-            matches["similarity"]
-            >= min_crosswalk_similarity
-        ]
-
-        for _, match in confident_matches.iterrows():
-
-            sid = match["esco_skill_id"]
-
-            contribution = (
-                element_weight
-                * match["similarity"]
-            )
-
-            skill_weight[sid] = (
-                skill_weight.get(sid, 0)
-                + contribution
-            )
-
-    if not skill_weight:
-        return empty
-
-    profile = pd.DataFrame(
-        [
-            {
-                "skill_id": skill_id,
-                "weight": weight
-            }
-            for skill_id, weight
-            in skill_weight.items()
-        ]
-    )
-
-    profile = profile.sort_values(
-        "weight",
-        ascending=False
-    )
-
-    profile = profile.merge(
-        skills_taxonomy[
-            ["skill_id", "skill_label"]
-        ],
-        on="skill_id",
-        how="left"
-    )
-
-    profile["weight"] = (
-        profile["weight"]
-        / profile["weight"].max()
-    )
-
-    profile["source"] = "onet_crosswalk"
-
-    return profile.head(
-        top_n
-    ).reset_index(drop=True)
-
-
-# ============================================================
-# 3. SEMANTIC OCCUPATION -> ESCO FALLBACK
-# ============================================================
-
-def get_semantic_occupation_skill_profile(
-    onet_soc_code,
-    top_n=DEFAULT_TARGET_SKILLS,
-    threshold=OCCUPATION_SKILL_THRESHOLD,
-    verbose=False
-):
-    """
-    Fallback when O*NET survey data is unavailable.
-
-    IMPORTANT:
-    We do NOT switch to another occupation.
-
-    Instead we keep the original target occupation and infer
-    ESCO skills from its own title + description.
-    """
-
-    empty = pd.DataFrame(
-        columns=[
-            "skill_id",
-            "weight",
-            "skill_label",
-            "source"
-        ]
-    )
-
-    if onet_soc_code not in occ_lookup.index:
-        return empty
-
-    occupation = occ_lookup.loc[
-        onet_soc_code
+    row = career_lookup.loc[
+        occupation_code
     ]
 
-    occupation_text = (
-        str(occupation.get("title", ""))
-        + ". "
-        + str(occupation.get("description", ""))
+    profile_text = combine_profile_text(
+        row
     )
 
-    matches = semantic_skill_search(
-        occupation_text,
-        top_n=top_n,
-        threshold=threshold
+    profile_embedding = model.encode(
+        [profile_text],
+        normalize_embeddings=True,
+    )[0]
+
+    similarities = (
+        esco_skill_emb @ profile_embedding
     )
 
-    if len(matches) == 0:
-        return empty
+    # --------------------------------------------------------
+    # Base semantic similarity
+    # --------------------------------------------------------
 
-    matches = matches.rename(
-        columns={
-            "similarity": "weight"
-        }
-    )
-
-    matches["source"] = (
-        "occupation_semantic_inference"
-    )
-
-    # Normalize to 0-1
-    matches["weight"] = (
-        matches["weight"]
-        / matches["weight"].max()
-    )
-
-    if verbose:
-        print(
-            "    [fallback] inferred ESCO skills:"
-        )
-
-        print(
-            matches[
-                [
-                    "skill_label",
-                    "weight"
-                ]
-            ].head(10).to_string(
-                index=False
-            )
-        )
-
-    return matches[
+    candidate_df = skills_taxonomy[
         [
             "skill_id",
-            "weight",
             "skill_label",
-            "source"
+            "is_digital",
+            "is_research",
+            "demand_frequency",
+            "avg_fit_score",
         ]
-    ].reset_index(drop=True)
+    ].copy()
 
+    candidate_df["semantic_score"] = [
+        float(
+            similarities[
+                esco_skill_id_to_row[sid]
+            ]
+        )
+        if sid in esco_skill_id_to_row
+        else 0.0
+        for sid in candidate_df["skill_id"]
+    ]
 
-# ============================================================
-# 4. GOAL -> EXPLICIT SKILLS
-# ============================================================
+    # --------------------------------------------------------
+    # Normalize demand
+    # --------------------------------------------------------
 
-def extract_goal_skills(
-    goal_text,
-    top_n=15,
-    threshold=GOAL_SKILL_THRESHOLD
-):
-    """
-    Extracts skills explicitly implied by the learner's goal.
+    demand = pd.to_numeric(
+        candidate_df["demand_frequency"],
+        errors="coerce",
+    ).fillna(0)
 
-    This prevents generic occupational skills from drowning out
-    the actual intent of the learner.
+    if demand.max() > 0:
 
-    Example:
-
-        "I want to become a data scientist working with machine learning"
-
-    can semantically surface skills related to:
-        data science
-        machine learning
-        statistics
-        programming
-        etc.
-
-    No skill is hardcoded.
-    """
-
-    matches = semantic_skill_search(
-        goal_text,
-        top_n=top_n,
-        threshold=threshold
-    )
-
-    if len(matches) == 0:
-        return matches
-
-    matches = matches.rename(
-        columns={
-            "similarity": "goal_similarity"
-        }
-    )
-
-    return matches
-
-
-# ============================================================
-# 5. COMBINE OCCUPATION + GOAL SKILLS
-# ============================================================
-
-def get_target_skill_profile(
-    onet_soc_code,
-    goal_text=None,
-    min_crosswalk_similarity=CROSSWALK_THRESHOLD,
-    top_n=DEFAULT_TARGET_SKILLS,
-    verbose=False
-):
-    """
-    Main target skill profile builder.
-
-    Priority:
-
-        1. O*NET -> ESCO crosswalk
-        2. If unavailable, semantic occupation -> ESCO
-        3. Goal-specific skills are merged and boosted
-
-    The occupation itself is NEVER replaced merely because
-    O*NET skill survey rows are missing.
-    """
-
-    onet_profile = get_onet_skill_profile(
-        onet_soc_code,
-        min_crosswalk_similarity,
-        top_n=top_n,
-        verbose=verbose
-    )
-
-    if len(onet_profile) == 0:
-
-        if verbose:
-            print(
-                "    [info] No O*NET skill-survey data."
-            )
-
-            print(
-                "    [info] Keeping occupation and "
-                "using semantic ESCO skill inference."
-            )
-
-        profile = get_semantic_occupation_skill_profile(
-            onet_soc_code,
-            top_n=top_n,
-            verbose=verbose
+        demand_norm = (
+            np.log1p(demand)
+            / np.log1p(demand.max())
         )
 
     else:
 
-        profile = onet_profile.copy()
+        demand_norm = 0.0
 
     # --------------------------------------------------------
-    # Add goal-specific skill signal
+    # Normalize fit
     # --------------------------------------------------------
 
-    if goal_text:
+    fit = pd.to_numeric(
+        candidate_df["avg_fit_score"],
+        errors="coerce",
+    ).fillna(0)
 
-        goal_skills = extract_goal_skills(
-            goal_text
-        )
+    fit_norm = fit / 100.0
 
-        if len(goal_skills) > 0:
+    # --------------------------------------------------------
+    # Metadata-aware score
+    # --------------------------------------------------------
 
-            if len(profile) == 0:
-
-                profile = goal_skills.rename(
-                    columns={
-                        "goal_similarity": "weight"
-                    }
-                )
-
-                profile["source"] = (
-                    "goal_semantic_inference"
-                )
-
-            else:
-
-                profile = profile.merge(
-                    goal_skills[
-                        [
-                            "skill_id",
-                            "goal_similarity"
-                        ]
-                    ],
-                    on="skill_id",
-                    how="outer"
-                )
-
-                profile["weight"] = (
-                    profile["weight"]
-                    .fillna(0)
-                )
-
-                profile["goal_similarity"] = (
-                    profile["goal_similarity"]
-                    .fillna(0)
-                )
-
-                # Goal-specific relevance is deliberately
-                # strong, because this is a personalized
-                # recommendation system.
-                profile["weight"] = (
-                    profile["weight"] * 0.70
-                    + profile["goal_similarity"] * 0.30
-                )
-
-                profile["source"] = (
-                    profile["source"]
-                    .fillna("goal_semantic_inference")
-                )
-
-    if len(profile) == 0:
-        return pd.DataFrame(
-            columns=[
-                "skill_id",
-                "weight",
-                "skill_label",
-                "source"
-            ]
-        )
-
-    profile["weight"] = (
-        profile["weight"]
-        / profile["weight"].max()
+    digital_bonus = (
+        candidate_df["is_digital"]
+        .fillna(False)
+        .astype(float)
+        * 0.025
     )
 
-    return (
-        profile
-        .sort_values(
+    research_bonus = (
+        candidate_df["is_research"]
+        .fillna(False)
+        .astype(float)
+        * 0.015
+    )
+
+    candidate_df["final_score"] = (
+        candidate_df["semantic_score"] * 0.82
+        + demand_norm * 0.08
+        + fit_norm * 0.055
+        + digital_bonus
+        + research_bonus
+    )
+
+    # --------------------------------------------------------
+    # Remove extremely weak semantic matches
+    # --------------------------------------------------------
+
+    candidate_df = candidate_df[
+        candidate_df["semantic_score"] >= 0.30
+    ]
+
+    candidate_df = candidate_df.sort_values(
+        "final_score",
+        ascending=False,
+    )
+
+    candidate_df["weight"] = (
+        candidate_df["final_score"]
+        / candidate_df["final_score"].max()
+    )
+
+    candidate_df["source"] = (
+        "onet_profile_semantic_inference"
+    )
+
+    return candidate_df[
+        [
+            "skill_id",
+            "skill_label",
             "weight",
-            ascending=False
-        )
-        .head(top_n)
-        .reset_index(drop=True)
-    )
+            "source",
+        ]
+    ].head(top_n).reset_index(drop=True)
 
 
 # ============================================================
-# 6. LEARNER SKILL MATCHING
+# 3. LEARNER SKILL MATCHING
 # ============================================================
 
 def match_learner_skills(
     learner_skill_labels,
-    similarity_threshold=LEARNER_SKILL_THRESHOLD
+    similarity_threshold=0.72,
 ):
     """
-    Matches learner's known skills to ESCO.
+    Resolve learner-provided skill names to ESCO.
 
-    Returns a set of skill IDs.
+    Strategy:
+
+    1. Exact skill_label match
+    2. Exact skill_alias match
+    3. Embedding fuzzy match
     """
 
     if not learner_skill_labels:
+
         return set()
-
-    query_embeddings = model.encode(
-        learner_skill_labels,
-        normalize_embeddings=True
-    )
-
-    similarities = (
-        query_embeddings
-        @ esco_skill_emb.T
-    )
 
     known = set()
 
-    for i, label in enumerate(
-        learner_skill_labels
-    ):
+    labels_lower = (
+        skills_taxonomy["skill_label"]
+        .fillna("")
+        .str.lower()
+        .str.strip()
+    )
 
-        best_j = int(
-            np.argmax(similarities[i])
+    aliases_lower = (
+        skills_taxonomy["skill_alias"]
+        .fillna("")
+        .str.lower()
+        .str.strip()
+    )
+
+    for raw_label in learner_skill_labels:
+
+        label = str(
+            raw_label
+        ).lower().strip()
+
+        # ----------------------------------------------------
+        # EXACT LABEL
+        # ----------------------------------------------------
+
+        exact = skills_taxonomy[
+            labels_lower == label
+        ]
+
+        if len(exact) > 0:
+
+            ids = exact["skill_id"].tolist()
+
+            known.update(ids)
+
+            print(
+                f"  [exact] '{raw_label}' -> "
+                f"{exact['skill_label'].tolist()}"
+            )
+
+            continue
+
+        # ----------------------------------------------------
+        # EXACT ALIAS
+        # ----------------------------------------------------
+
+        alias_match = skills_taxonomy[
+            aliases_lower == label
+        ]
+
+        if len(alias_match) > 0:
+
+            ids = alias_match[
+                "skill_id"
+            ].tolist()
+
+            known.update(ids)
+
+            print(
+                f"  [alias] '{raw_label}' -> "
+                f"{alias_match['skill_label'].tolist()}"
+            )
+
+            continue
+
+        # ----------------------------------------------------
+        # EMBEDDING FALLBACK
+        # ----------------------------------------------------
+
+        q_emb = model.encode(
+            [raw_label],
+            normalize_embeddings=True,
+        )[0]
+
+        sims = (
+            q_emb @ esco_skill_emb.T
         )
 
-        best_similarity = float(
-            similarities[i][best_j]
+        best_idx = int(
+            np.argmax(sims)
         )
 
-        if (
-            best_similarity
-            >= similarity_threshold
-        ):
+        best_score = float(
+            sims[best_idx]
+        )
 
-            known.add(
-                esco_skill_ids_order[best_j]
+        if best_score >= similarity_threshold:
+
+            sid = esco_skill_ids_order[
+                best_idx
+            ]
+
+            known.add(sid)
+
+            skill_label = skills_lookup.loc[
+                sid,
+                "skill_label",
+            ]
+
+            print(
+                f"  [semantic] '{raw_label}' -> "
+                f"'{skill_label}' "
+                f"(similarity={best_score:.3f})"
+            )
+
+        else:
+
+            print(
+                f"  [unmatched] '{raw_label}' "
+                f"(best similarity={best_score:.3f})"
             )
 
     return known
 
 
 # ============================================================
-# 7. GAP ANALYSIS
+# 4. GAP ANALYSIS
 # ============================================================
 
 def gap_analysis(
     target_profile,
-    learner_skill_ids
+    learner_skill_ids,
 ):
     """
-    Removes skills already known by learner.
+    Remove skills already known by learner.
     """
 
-    if len(target_profile) == 0:
+    if target_profile.empty:
+
         return target_profile.copy()
 
     gap = target_profile[
-        ~target_profile["skill_id"]
-        .isin(learner_skill_ids)
+        ~target_profile["skill_id"].isin(
+            learner_skill_ids
+        )
     ].copy()
 
-    return (
-        gap
-        .sort_values(
-            "weight",
-            ascending=False
-        )
-        .reset_index(drop=True)
+    return gap.reset_index(
+        drop=True
     )
 
 
 # ============================================================
-# 8. COURSE QUALITY SCORE
+# 5. COURSE RECOMMENDATION
 # ============================================================
 
-def calculate_course_quality(
-    df
+DIFFICULTY_ORDER = {
+    "Beginner": 0,
+    "Intermediate": 1,
+    "Mixed": 1,
+    "Advanced": 2,
+}
+
+
+def recommend_courses_for_skill(
+    skill_id,
+    top_n=2,
 ):
     """
-    Calculates normalized quality signals.
-
-    Uses:
-        skill matching score
-        rating
-        popularity
+    Recommend courses tagged with a specific ESCO skill.
     """
 
-    df = df.copy()
+    matches = course_skills_by_skill.get(
+        skill_id
+    )
+
+    if matches is None or len(matches) == 0:
+
+        return pd.DataFrame()
+
+    merged = matches.merge(
+        courses,
+        on="course_id",
+        how="left",
+    )
+
+    # --------------------------------------------------------
+    # Skill match score
+    # --------------------------------------------------------
+
+    merged["score"] = pd.to_numeric(
+        merged["score"],
+        errors="coerce",
+    ).fillna(0)
 
     # --------------------------------------------------------
     # Rating
     # --------------------------------------------------------
 
-    df["rating"] = pd.to_numeric(
-        df["rating"],
-        errors="coerce"
+    rating = pd.to_numeric(
+        merged["rating"],
+        errors="coerce",
     )
 
-    rating_mean = (
-        df["rating"].mean()
-        if df["rating"].notna().any()
+    rating_fill = (
+        rating.mean()
+        if rating.notna().any()
         else 3.5
     )
 
-    df["rating_norm"] = (
-        df["rating"]
-        .fillna(rating_mean)
-        .clip(0, 5)
+    merged["rating_norm"] = (
+        rating.fillna(rating_fill)
         / 5.0
     )
 
@@ -965,117 +794,39 @@ def calculate_course_quality(
     # Popularity
     # --------------------------------------------------------
 
-    df["num_enrolled"] = pd.to_numeric(
-        df["num_enrolled"],
-        errors="coerce"
+    enrolled = pd.to_numeric(
+        merged["num_enrolled"],
+        errors="coerce",
     ).fillna(0)
 
-    df["popularity_log"] = np.log1p(
-        df["num_enrolled"]
+    popularity = np.log1p(
+        enrolled
     )
 
-    max_popularity = (
-        df["popularity_log"].max()
-    )
+    if popularity.max() > 0:
 
-    if max_popularity > 0:
-
-        df["popularity_norm"] = (
-            df["popularity_log"]
-            / max_popularity
+        merged["popularity_norm"] = (
+            popularity
+            / popularity.max()
         )
 
     else:
 
-        df["popularity_norm"] = 0
+        merged["popularity_norm"] = 0
 
     # --------------------------------------------------------
-    # Final course quality
-    # --------------------------------------------------------
-
-    df["quality_score"] = (
-        df["rating_norm"] * 0.65
-        + df["popularity_norm"] * 0.35
-    )
-
-    return df
-
-
-# ============================================================
-# 9. COURSE RECOMMENDATION PER SKILL
-# ============================================================
-
-def recommend_courses_for_skill(
-    skill_id,
-    target_skill_weight=1.0,
-    top_n=COURSES_PER_SKILL
-):
-    """
-    Finds courses teaching a specific skill.
-    """
-
-    matches = course_skills_by_skill.get(
-        skill_id
-    )
-
-    if (
-        matches is None
-        or len(matches) == 0
-    ):
-        return pd.DataFrame()
-
-    merged = matches.merge(
-        courses,
-        on="course_id",
-        how="left"
-    )
-
-    if len(merged) == 0:
-        return pd.DataFrame()
-
-    merged = calculate_course_quality(
-        merged
-    )
-
-    # Skill score from course_skills
-    merged["score"] = pd.to_numeric(
-        merged["score"],
-        errors="coerce"
-    ).fillna(0)
-
-    # Normalize course skill score
-    max_score = merged["score"].max()
-
-    if max_score > 0:
-
-        merged["skill_match_norm"] = (
-            merged["score"]
-            / max_score
-        )
-
-    else:
-
-        merged["skill_match_norm"] = 0
-
-    # --------------------------------------------------------
-    # Course final score
+    # Final course score
     # --------------------------------------------------------
 
     merged["final_rank_score"] = (
-        merged["skill_match_norm"] * 0.55
+        merged["score"] * 0.50
         + merged["rating_norm"] * 0.30
-        + merged["popularity_norm"] * 0.15
-    )
-
-    # Target skill importance
-    merged["final_rank_score"] *= (
-        0.75
-        + 0.25 * target_skill_weight
+        + merged["popularity_norm"] * 0.20
     )
 
     merged = merged.sort_values(
         "final_rank_score",
-        ascending=False
+        ascending=False,
     )
 
     columns = [
@@ -1086,146 +837,74 @@ def recommend_courses_for_skill(
         "difficulty",
         "rating",
         "url",
-        "final_rank_score"
+        "final_rank_score",
     ]
 
-    available_columns = [
-        c for c in columns
+    existing_columns = [
+        c
+        for c in columns
         if c in merged.columns
     ]
 
-    return (
-        merged[
-            available_columns
-        ]
-        .head(top_n)
-        .reset_index(drop=True)
+    return merged[
+        existing_columns
+    ].head(top_n).reset_index(
+        drop=True
     )
 
 
 # ============================================================
-# 10. COURSE DIVERSITY
-# ============================================================
-
-def select_diverse_courses(
-    recommendations,
-    max_courses=12
-):
-    """
-    Prevents the same course from appearing repeatedly
-    for different skills.
-    """
-
-    if len(recommendations) == 0:
-        return recommendations
-
-    recommendations = (
-        recommendations
-        .sort_values(
-            "final_rank_score",
-            ascending=False
-        )
-        .drop_duplicates(
-            subset=["course_id"]
-        )
-        .head(max_courses)
-        .reset_index(drop=True)
-    )
-
-    return recommendations
-
-
-# ============================================================
-# 11. DIFFICULTY ORDER
-# ============================================================
-
-DIFFICULTY_ORDER = {
-    "Beginner": 0,
-    "Mixed": 1,
-    "Intermediate": 1,
-    "Advanced": 2
-}
-
-
-def difficulty_rank(value):
-    if pd.isna(value):
-        return 1
-
-    return DIFFICULTY_ORDER.get(
-        str(value),
-        1
-    )
-
-
-# ============================================================
-# 12. ROADMAP BUILDER
+# 6. ROADMAP BUILDER
 # ============================================================
 
 def build_roadmap(
     goal_text,
     learner_skill_labels,
     skills_per_milestone=3,
-    top_gap_skills=DEFAULT_TOP_GAPS,
-    verbose=True
+    top_gap_skills=9,
+    verbose=True,
 ):
     """
-    Complete end-to-end personalized roadmap.
-
-    Critical behavior:
-
-    The best occupation remains the target occupation even if
-    O*NET survey data is unavailable.
+    Complete recommendation pipeline.
     """
 
     # ========================================================
-    # A. GOAL -> OCCUPATION
+    # OCCUPATION
     # ========================================================
 
-    occupation_matches = (
-        match_goal_to_occupation(
-            goal_text,
-            top_k=DEFAULT_TOP_OCCUPATIONS
-        )
+    occ_matches = match_goal_to_occupation(
+        goal_text,
+        top_k=5,
     )
 
-    if len(occupation_matches) == 0:
+    if occ_matches.empty:
+
         raise ValueError(
-            "No occupation matched the learner goal."
+            "No O*NET occupation matched the goal."
         )
 
-    # IMPORTANT:
-    # ALWAYS choose the semantically best occupation.
-    occ = occupation_matches.iloc[0]
+    occ = occ_matches.iloc[0]
 
     if verbose:
 
         print(
-            f"\nSelected target occupation:"
-            f" {occ['title']}"
+            f"\nSelected target occupation: "
+            f"{occ['title']}"
         )
 
         print(
-            f"Occupation similarity:"
-            f" {round(occ['similarity'], 4)}"
+            f"Occupation similarity: "
+            f"{occ['similarity']:.4f}"
         )
 
     # ========================================================
-    # B. TARGET SKILL PROFILE
+    # ESCO TARGET SKILLS
     # ========================================================
 
-    profile = get_target_skill_profile(
+    target_profile = infer_target_esco_skills(
         occ["onet_soc_code"],
-        goal_text=goal_text,
-        top_n=30,
-        verbose=verbose
+        top_n=25,
     )
-
-    if len(profile) == 0:
-
-        raise ValueError(
-            "Could not construct a target skill profile "
-            f"for occupation '{occ['title']}'."
-        )
 
     if verbose:
 
@@ -1233,26 +912,26 @@ def build_roadmap(
             "\nTop target skills:"
         )
 
-        print(
-            profile[
-                [
-                    "skill_label",
-                    "weight",
-                    "source"
-                ]
-            ]
-            .head(15)
-            .to_string(index=False)
-        )
+        if target_profile.empty:
+
+            print(
+                "No ESCO skills inferred."
+            )
+
+        else:
+
+            print(
+                target_profile.head(15).to_string(
+                    index=False
+                )
+            )
 
     # ========================================================
-    # C. LEARNER SKILLS
+    # LEARNER SKILLS
     # ========================================================
 
-    learner_skill_ids = (
-        match_learner_skills(
-            learner_skill_labels
-        )
+    learner_skill_ids = match_learner_skills(
+        learner_skill_labels
     )
 
     if verbose:
@@ -1277,15 +956,13 @@ def build_roadmap(
         )
 
     # ========================================================
-    # D. SKILL GAP
+    # GAP
     # ========================================================
 
     gap = gap_analysis(
-        profile,
-        learner_skill_ids
-    )
-
-    gap = gap.head(
+        target_profile,
+        learner_skill_ids,
+    ).head(
         top_gap_skills
     )
 
@@ -1295,84 +972,67 @@ def build_roadmap(
             "\nTop skill gaps:"
         )
 
-        if len(gap):
+        if gap.empty:
 
             print(
-                gap[
-                    [
-                        "skill_label",
-                        "weight",
-                        "source"
-                    ]
-                ].to_string(
-                    index=False
-                )
+                "No skill gaps found."
             )
 
         else:
 
             print(
-                "No skill gaps detected."
+                gap.to_string(
+                    index=False
+                )
             )
 
     # ========================================================
-    # E. COURSE RECOMMENDATIONS
+    # COURSE RECOMMENDATIONS
     # ========================================================
 
     roadmap_items = []
 
-    for _, skill_row in gap.iterrows():
-
-        skill_id = skill_row[
-            "skill_id"
-        ]
-
-        skill_weight = float(
-            skill_row["weight"]
-        )
+    for _, row in gap.iterrows():
 
         recs = recommend_courses_for_skill(
-            skill_id,
-            target_skill_weight=skill_weight,
-            top_n=COURSES_PER_SKILL
+            row["skill_id"],
+            top_n=2,
         )
 
-        if len(recs) == 0:
+        if recs.empty:
 
             if verbose:
 
                 print(
-                    f"    [info] No course found "
-                    f"for skill: "
-                    f"{skill_row['skill_label']}"
+                    f"\n[no course] "
+                    f"{row['skill_label']}"
                 )
 
             continue
 
         best = recs.iloc[0]
 
+        difficulty = best.get(
+            "difficulty",
+            "Unknown",
+        )
+
+        if pd.isna(difficulty):
+
+            difficulty = "Unknown"
+
         roadmap_items.append(
             {
-                "skill_id": skill_id,
-
                 "skill_label":
-                    skill_row[
-                        "skill_label"
-                    ],
+                    row["skill_label"],
 
                 "gap_weight":
                     round(
-                        skill_weight,
-                        4
+                        float(
+                            row["weight"]
+                        ),
+                        4,
                     ),
-
-                "skill_source":
-                    skill_row[
-                        "source"
-                    ],
-
-                "course_id":
-                    best["course_id"],
 
                 "course_title":
                     best["title"],
@@ -1380,50 +1040,25 @@ def build_roadmap(
                 "course_source":
                     best["source"],
 
-                "course_provider":
-                    best.get(
-                        "provider",
-                        None
-                    ),
-
                 "course_difficulty":
-                    best.get(
-                        "difficulty",
-                        None
-                    ),
-
-                "course_rating":
-                    best.get(
-                        "rating",
-                        None
-                    ),
+                    difficulty,
 
                 "course_url":
                     best.get(
                         "url",
-                        None
-                    ),
-
-                "course_score":
-                    round(
-                        float(
-                            best[
-                                "final_rank_score"
-                            ]
-                        ),
-                        4
+                        "",
                     ),
 
                 "explanation": (
                     f"This recommendation targets "
-                    f"the skill '{skill_row['skill_label']}', "
-                    f"which has a target relevance of "
-                    f"{round(skill_weight, 2)}/1.0 "
+                    f"'{row['skill_label']}', which has "
+                    f"a target relevance of "
+                    f"{float(row['weight']):.2f}/1.0 "
                     f"for '{occ['title']}'. "
                     f"The course was selected using "
                     f"skill-match quality, learner "
                     f"relevance, rating and popularity."
-                )
+                ),
             }
         )
 
@@ -1431,162 +1066,42 @@ def build_roadmap(
         roadmap_items
     )
 
-    if len(roadmap_df) == 0:
+    if roadmap_df.empty:
 
         return occ, roadmap_df
 
     # ========================================================
-    # F. REMOVE DUPLICATE COURSES
-    # ========================================================
-
-    roadmap_df = (
-        roadmap_df
-        .sort_values(
-            [
-                "gap_weight",
-                "course_score"
-            ],
-            ascending=False
-        )
-        .drop_duplicates(
-            subset=["course_id"]
-        )
-        .reset_index(drop=True)
-    )
-
-    # ========================================================
-    # G. DIFFICULTY-AWARE ORDERING
+    # MILESTONE ORDER
     # ========================================================
 
     roadmap_df["diff_rank"] = (
         roadmap_df[
             "course_difficulty"
         ]
-        .apply(
-            difficulty_rank
-        )
+        .map(DIFFICULTY_ORDER)
+        .fillna(1)
     )
 
-    roadmap_df = (
-        roadmap_df
-        .sort_values(
-            [
-                "diff_rank",
-                "gap_weight",
-                "course_score"
-            ],
-            ascending=[
-                True,
-                False,
-                False
-            ]
-        )
-        .reset_index(drop=True)
+    roadmap_df = roadmap_df.sort_values(
+        [
+            "diff_rank",
+            "gap_weight",
+        ],
+        ascending=[
+            True,
+            False,
+        ],
+        kind="stable",
+    ).reset_index(
+        drop=True
     )
-
-    # ========================================================
-    # H. MILESTONES
-    # ========================================================
 
     roadmap_df["milestone"] = (
         roadmap_df.index
         // skills_per_milestone
     ) + 1
 
-    roadmap_df["milestone_title"] = (
-        "Milestone "
-        + roadmap_df[
-            "milestone"
-        ].astype(str)
-    )
-
     return occ, roadmap_df
-
-
-# ============================================================
-# 13. HUMAN-READABLE ROADMAP
-# ============================================================
-
-def print_roadmap(
-    occupation,
-    roadmap
-):
-    """
-    Pretty console output.
-    """
-
-    print(
-        "\n"
-        + "=" * 80
-    )
-
-    print(
-        "PERSONALIZED LEARNING ROADMAP"
-    )
-
-    print(
-        "=" * 80
-    )
-
-    print(
-        f"\nTarget career:"
-        f" {occupation['title']}"
-    )
-
-    print(
-        f"Confidence:"
-        f" {round(occupation['similarity'], 3)}"
-    )
-
-    if len(roadmap) == 0:
-
-        print(
-            "\nNo course recommendations found."
-        )
-
-        return
-
-    for milestone, group in (
-        roadmap.groupby(
-            "milestone"
-        )
-    ):
-
-        print(
-            f"\n--- MILESTONE {milestone} ---"
-        )
-
-        for _, row in group.iterrows():
-
-            print(
-                f"\nSkill:"
-                f" {row['skill_label']}"
-            )
-
-            print(
-                f"Course:"
-                f" {row['course_title']}"
-            )
-
-            print(
-                f"Source:"
-                f" {row['course_source']}"
-            )
-
-            print(
-                f"Difficulty:"
-                f" {row['course_difficulty']}"
-            )
-
-            print(
-                f"Skill relevance:"
-                f" {row['gap_weight']}"
-            )
-
-            print(
-                f"Why:"
-                f" {row['explanation']}"
-            )
 
 
 # ============================================================
@@ -1602,7 +1117,7 @@ if __name__ == "__main__":
 
     known_skills = [
         "computer programming",
-        "mathematics"
+        "mathematics",
     ]
 
     print(
@@ -1611,11 +1126,13 @@ if __name__ == "__main__":
     )
 
     print(
-        f"GOAL: {goal}"
+        "GOAL:",
+        goal,
     )
 
     print(
-        f"KNOWN SKILLS: {known_skills}"
+        "KNOWN SKILLS:",
+        known_skills,
     )
 
     print(
@@ -1623,7 +1140,7 @@ if __name__ == "__main__":
     )
 
     # --------------------------------------------------------
-    # Show occupation candidates
+    # Occupation matching
     # --------------------------------------------------------
 
     print(
@@ -1633,7 +1150,7 @@ if __name__ == "__main__":
     occupation_matches = (
         match_goal_to_occupation(
             goal,
-            top_k=5
+            top_k=5,
         )
     )
 
@@ -1641,7 +1158,7 @@ if __name__ == "__main__":
         occupation_matches[
             [
                 "title",
-                "similarity"
+                "similarity",
             ]
         ].to_string(
             index=False
@@ -1649,21 +1166,87 @@ if __name__ == "__main__":
     )
 
     # --------------------------------------------------------
-    # Build roadmap
+    # Full pipeline
     # --------------------------------------------------------
 
-    occupation, roadmap = build_roadmap(
-        goal_text=goal,
-        learner_skill_labels=known_skills,
+    occ, roadmap = build_roadmap(
+        goal,
+        known_skills,
         skills_per_milestone=3,
-        top_gap_skills=12,
-        verbose=True
+        top_gap_skills=9,
+        verbose=True,
     )
 
-    print_roadmap(
-        occupation,
-        roadmap
+    print(
+        "\n"
+        + "=" * 80
     )
+
+    print(
+        "PERSONALIZED LEARNING ROADMAP"
+    )
+
+    print(
+        "=" * 80
+    )
+
+    print(
+        f"\nTarget career: "
+        f"{occ['title']}"
+    )
+
+    print(
+        f"Confidence: "
+        f"{float(occ['similarity']):.3f}"
+    )
+
+    if roadmap.empty:
+
+        print(
+            "\nNo course recommendations found."
+        )
+
+    else:
+
+        for milestone, group in roadmap.groupby(
+            "milestone"
+        ):
+
+            print(
+                f"\n--- MILESTONE {milestone} ---"
+            )
+
+            for _, row in group.iterrows():
+
+                print(
+                    f"\nSkill: "
+                    f"{row['skill_label']}"
+                )
+
+                print(
+                    f"Course: "
+                    f"{row['course_title']}"
+                )
+
+                print(
+                    f"Source: "
+                    f"{row['course_source']}"
+                )
+
+                print(
+                    f"Difficulty: "
+                    f"{row['course_difficulty']}"
+                )
+
+                print(
+                    f"Skill relevance: "
+                    f"{row['gap_weight']}"
+                )
+
+                print(
+                    f"Why: "
+                    f"{row['explanation']}"
+                )
 
     print(
         "\n"
