@@ -21,6 +21,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "https://ai-powered-personalized-learning-path-recommender-226dlmbfe.vercel.app",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
