@@ -56,13 +56,8 @@ def _load_resources():
 
 @lru_cache(maxsize=1)
 def _load_model():
-    from sentence_transformers import SentenceTransformer
-
-    try:
-        return SentenceTransformer("all-mpnet-base-v2")
-    except Exception as exc:
-        print(f"[WARNING] Could not load embedding model; using lexical matching fallback: {exc}")
-        return None
+    # Vercel's serverless size limit cannot accommodate the embedding model.
+    return None
 
 
 @lru_cache(maxsize=1)

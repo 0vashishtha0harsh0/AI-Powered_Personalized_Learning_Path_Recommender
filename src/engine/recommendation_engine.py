@@ -510,19 +510,41 @@ def find_occupation_matches(
 
 
 def lexical_occupation_similarities(goal, occupation_text):
-    """Fallback scorer used when the embedding model cannot be loaded."""
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.metrics.pairwise import cosine_similarity
+    """Calculate TF-IDF cosine scores without the optional sklearn dependency."""
+    from collections import Counter
+    from math import log, sqrt
 
-    corpus = [str(goal)] + [str(text) for text in occupation_text]
-    vectorizer = TfidfVectorizer(
-        lowercase=True,
-        stop_words="english",
-        ngram_range=(1, 2),
-        min_df=1,
+    stop_words = {
+        "a", "an", "and", "are", "as", "at", "be", "by", "for", "from",
+        "in", "is", "of", "on", "or", "that", "the", "to", "with",
+    }
+
+    def terms(value):
+        tokens = [token for token in re.findall(r"[a-z0-9]+", str(value).lower()) if token not in stop_words]
+        return tokens + [f"{left} {right}" for left, right in zip(tokens, tokens[1:])]
+
+    documents = [terms(goal)] + [terms(text) for text in occupation_text]
+    document_frequency = Counter(
+        term for document in documents for term in set(document)
     )
-    matrix = vectorizer.fit_transform(corpus)
-    return cosine_similarity(matrix[0], matrix[1:]).ravel()
+    total_documents = len(documents)
+
+    def vector(document):
+        counts = Counter(document)
+        return {
+            term: count * log((total_documents + 1) / (document_frequency[term] + 1))
+            for term, count in counts.items()
+        }
+
+    goal_vector = vector(documents[0])
+    goal_norm = sqrt(sum(value * value for value in goal_vector.values()))
+    scores = []
+    for document in documents[1:]:
+        current = vector(document)
+        current_norm = sqrt(sum(value * value for value in current.values()))
+        dot_product = sum(value * current.get(term, 0.0) for term, value in goal_vector.items())
+        scores.append(dot_product / (goal_norm * current_norm) if goal_norm and current_norm else 0.0)
+    return np.asarray(scores, dtype=float)
 
 
 # =============================================================================

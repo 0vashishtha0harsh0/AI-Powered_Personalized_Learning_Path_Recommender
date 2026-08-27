@@ -1,10 +1,5 @@
 pandas
 numpy
-openpyxl
-sentence-transformers
-faiss-cpu
-flashtext
-scikit-learn
 fastapi
 pydantic
 uvicorn
