@@ -1,9 +1,11 @@
 import { AlertTriangle, Brain, Sparkles } from "lucide-react";
 import ProgressBar from "../components/ProgressBar";
 import SectionTitle from "../components/SectionTitle";
-import { skills } from "../data/mock";
+import { skillGaps, skills } from "../data/mock";
+import { useNavigate } from "react-router-dom";
 
 export default function Skills() {
+  const navigate = useNavigate();
   return (
     <>
       <SectionTitle
@@ -33,19 +35,15 @@ export default function Skills() {
             <div><span className="tag">AI DETECTED</span><h3>Skill gaps</h3></div>
           </div>
           <p className="muted">
-            These areas have the highest impact on your AI Engineer goal.
+            These areas have the highest impact on your target career.
           </p>
-          {[
-            ["Deep Learning", 38],
-            ["Transformers", 21],
-            ["NLP", 22]
-          ].map(([name, value]) => (
+          {skillGaps.slice(0, 8).map(([name, value]) => (
             <div className="gap" key={name}>
               <div><span>{name}</span><b>{value}%</b></div>
               <ProgressBar value={value as number} />
             </div>
           ))}
-          <button className="btn primary full">
+          <button className="btn primary full" onClick={() => navigate("/path")}>
             <Sparkles size={16} /> Build gap plan
           </button>
         </div>

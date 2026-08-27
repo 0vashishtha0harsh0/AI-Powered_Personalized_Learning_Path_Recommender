@@ -12,11 +12,13 @@ Produces:
 import pandas as pd
 import numpy as np
 import os
+from pathlib import Path
 
-RAW = "../Data/raw"
-OUT = "../Data/processed"
-os.makedirs(f"{OUT}/skills", exist_ok=True)
-os.makedirs(f"{OUT}/careers", exist_ok=True)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RAW = PROJECT_ROOT / "Data" / "raw"
+OUT = PROJECT_ROOT / "Data" / "processed"
+(OUT / "skills").mkdir(parents=True, exist_ok=True)
+(OUT / "careers").mkdir(parents=True, exist_ok=True)
 
 # ============================================================
 # 1. ESCO FINE-GRAINED SKILL TAXONOMY
@@ -137,6 +139,48 @@ occupation_element_scores = occupation_element_scores.rename(
 occupation_element_scores = occupation_element_scores.merge(
     onet_elements[["element_id", "element_name"]], on="element_id", how="left"
 )
+
+# O*NET publishes ratings for detailed occupations (for example
+# 15-2051.01/15-2051.02) while the occupation master also contains their
+# parent (15-2051.00). Materialize parent rows from descendants so every
+# master occupation has a usable, traceable profile instead of relying on a
+# runtime fallback that mixes rows silently.
+occupation_element_scores["onet_soc_code"] = (
+    occupation_element_scores["onet_soc_code"].astype(str).str.strip().str.lower()
+)
+occ["onet_soc_code"] = occ["onet_soc_code"].astype(str).str.strip().str.lower()
+existing_codes = set(occupation_element_scores["onet_soc_code"].unique())
+derived_rows = []
+for code in occ["onet_soc_code"].unique():
+    if code in existing_codes or "." not in code:
+        continue
+    descendants = occupation_element_scores[
+        occupation_element_scores["onet_soc_code"].str.startswith(code.rsplit(".", 1)[0] + ".")
+    ]
+    if descendants.empty:
+        continue
+    grouped = descendants.groupby(["element_id", "element_type", "element_name"], as_index=False)[
+        ["importance", "level"]
+    ].median()
+    grouped["onet_soc_code"] = code
+    grouped["derived_from"] = "descendants"
+    derived_rows.append(grouped)
+
+if derived_rows:
+    occupation_element_scores = pd.concat(
+        [occupation_element_scores, pd.concat(derived_rows, ignore_index=True)],
+        ignore_index=True,
+    )
+
+occupation_element_scores["derived_from"] = occupation_element_scores.get(
+    "derived_from", pd.Series("raw", index=occupation_element_scores.index)
+).fillna("raw")
+coverage = set(occupation_element_scores["onet_soc_code"].unique())
+missing = sorted(set(occ["onet_soc_code"]) - coverage)
+if missing:
+    print(f"[WARNING] {len(missing)} occupations still have no ratings: {missing[:10]}")
+else:
+    print("[OK] Every occupation has an occupation-element profile.")
 
 occupation_element_scores.to_csv(f"{OUT}/careers/occupation_element_scores.csv", index=False)
 print("\nOccupation-element score rows:", occupation_element_scores.shape[0])

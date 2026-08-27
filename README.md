@@ -10,13 +10,13 @@ recommendations.
 Online learning platforms offer thousands of courses, but learners struggle to
 identify the *right sequence* of resources to reach a specific goal. This project
 bridges that gap by grounding recommendations in real occupational skill
-requirements (O*NET) and real-world skill demand (ESCO job-posting data), rather
+requirements (O*NET), Stack Overflow technology demand, and course evidence, rather
 than relying on course popularity alone.
 
 ## Architecture
 
 ```
-Raw data (O*NET, ESCO, Udemy/edX/Coursera)
+Raw data (O*NET, ESCO, Stack Overflow, Udemy/edX/Coursera)
         │
         ▼
 ┌─────────────────────────┐
@@ -40,8 +40,8 @@ Raw data (O*NET, ESCO, Udemy/edX/Coursera)
         │
         ▼
 ┌─────────────────────────┐
-│ 4. Recommendation Engine│  Gap analysis (target career vs. learner
-│                          │  profile) → prerequisite-ordered roadmap
+│ 4. Recommendation Engine│  Learner resolution → hybrid career match →
+│                          │  O*NET/ESCO gaps → course ranking → roadmap
 └─────────────────────────┘
         │
         ▼
@@ -92,3 +92,22 @@ pip install -r requirements.txt
 
 See `docs/data_setup.md` for data download instructions before running the
 pipeline scripts in `src/data_prep/`.
+
+Run the preprocessing scripts from the project root in this order:
+
+```bash
+python src/data_prep/build_taxonomy.py
+python src/data_prep/build_crosswalk.py
+python src/data_prep/build_unified_courses.py
+python src/data_prep/build_course_skill_tagging.py
+python src/engine/stackoverflow_signal.py
+```
+
+The engine reuses validated career embeddings, resolves parent O*NET codes to
+detailed sub-occupations, and keeps milestones when course availability is
+missing. Roadmap ordering is a transparent heuristic when source prerequisite
+data is unavailable. Start the API with:
+
+```bash
+uvicorn src.api.main:app --reload
+```

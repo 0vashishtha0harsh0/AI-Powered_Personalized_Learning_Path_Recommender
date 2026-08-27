@@ -150,6 +150,33 @@ def group_text(df, code_col, item_col, top_n=20):
     return output
 
 
+def group_technology_text(df, top_n=40, flag=None):
+    """Keep named O*NET software examples alongside their categories."""
+    if df.empty or "O*NET-SOC Code" not in df.columns:
+        return {}
+    output = {}
+    for code, group in df.groupby("O*NET-SOC Code"):
+        ranked = group.copy()
+        ranked["_hot"] = ranked.get("Hot Technology", "N").astype(str).str.upper().eq("Y")
+        ranked["_demand"] = ranked.get("In Demand", "N").astype(str).str.upper().eq("Y")
+        if flag == "hot":
+            ranked = ranked[ranked["_hot"]]
+        elif flag == "demand":
+            ranked = ranked[ranked["_demand"]]
+        ranked = ranked.sort_values(["_demand", "_hot"], ascending=False)
+        values = []
+        for _, row in ranked.iterrows():
+            example = clean_text(row.get("Example", ""))
+            category = clean_text(row.get("Commodity Title", ""))
+            value = " | ".join(item for item in (example, category) if item)
+            if value and value not in values:
+                values.append(value)
+            if len(values) >= top_n:
+                break
+        output[code] = " | ".join(values)
+    return output
+
+
 # ============================================================
 # LOAD DATA
 # ============================================================
@@ -387,14 +414,17 @@ if not technology.empty:
         "O*NET-SOC Code"
     ):
 
-        technology_profile[code] = unique_join(
-            group["Commodity Title"].tolist(),
-            limit=25
-        )
+        technology_profile[code] = group_technology_text(group, top_n=40).get(code, "")
 
 profiles["technology"] = profiles[
     "onet_soc_code"
 ].map(technology_profile).fillna("")
+profiles["technology_hot"] = profiles["onet_soc_code"].map(
+    group_technology_text(technology, top_n=40, flag="hot")
+).fillna("")
+profiles["technology_in_demand"] = profiles["onet_soc_code"].map(
+    group_technology_text(technology, top_n=40, flag="demand")
+).fillna("")
 
 
 # ============================================================

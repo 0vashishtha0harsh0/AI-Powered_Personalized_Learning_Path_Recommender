@@ -5,9 +5,17 @@ import { Link } from "react-router-dom";
 import ProgressBar from "../components/ProgressBar";
 import SectionTitle from "../components/SectionTitle";
 import { learner, recommendations, skills } from "../data/mock";
+import { getCompletedMilestones } from "../state";
 
 export default function Dashboard() {
-  const next = recommendations[0];
+  const next = recommendations[0] || {
+    title: "Build your learning path",
+    reason: "Complete onboarding to get recommendations for your goal.",
+    time: "Not started",
+    level: "PathAI",
+  };
+  const completed = getCompletedMilestones();
+  const completion = learner.milestones ? Math.round((completed.length / learner.milestones) * 100) : 0;
 
   return (
     <>
@@ -15,7 +23,7 @@ export default function Dashboard() {
         <div>
           <span className="eyebrow">PERSONALIZED LEARNING</span>
           <h1>Good evening, {learner.name} <span>✦</span></h1>
-          <p>Your AI Engineer journey is moving forward.</p>
+          <p>Your personalized journey is built around this goal.</p>
         </div>
         <Link className="btn ghost" to="/mentor">
           <Sparkles size={16} /> Ask PathAI
@@ -27,13 +35,14 @@ export default function Dashboard() {
           <div className="goal-top">
             <span>YOUR GOAL</span>
             <strong>{learner.goal}</strong>
+            <small className="career-match">Recommended career: {savedCareerTitle()}</small>
           </div>
           <div className="big-progress">
-            <span style={{ width: `${learner.progress}%` }} />
+            <span style={{ width: `${completion}%` }} />
           </div>
           <div className="goal-bottom">
-            <b>{learner.progress}% complete</b>
-            <span>68 of 160 learning hours</span>
+            <b>{completion}% complete</b>
+            <span>{completed.length} of {learner.milestones} milestones complete</span>
           </div>
         </div>
         <div className="goal-orb">✦</div>
@@ -43,7 +52,7 @@ export default function Dashboard() {
         <Stat icon={<Flame />} value={`${learner.streak} days`} label="Learning streak" />
         <Stat icon={<Clock3 />} value={`${learner.hours}h`} label="Learning time" />
         <Stat icon={<Trophy />} value={learner.milestones} label="Milestones" />
-        <Stat icon={<Target />} value="71%" label="Career readiness" />
+        <Stat icon={<Target />} value={`${Math.min(100, completion + (learner.milestones ? 10 : 0))}%`} label="Career readiness" />
       </div>
 
       <div className="grid-2">
@@ -75,13 +84,13 @@ export default function Dashboard() {
             </div>
           </div>
           <p>
-            Your ML fundamentals are strong, but Deep Learning is currently
-            your largest skill gap for the target role.
+            Your recommendations are generated from your target occupation,
+            current skills and identified learning gaps.
           </p>
           <div className="reason-list">
             <span>✓ Matches your target role</span>
             <span>✓ Builds on completed prerequisites</span>
-            <span>✓ Addresses your biggest skill gap</span>
+            <span>✓ Addresses your highest-priority skill gap</span>
           </div>
           <Link to="/mentor" className="text-link">
             Ask PathAI about this <ArrowRight size={15} />
@@ -107,6 +116,15 @@ export default function Dashboard() {
       </div>
     </>
   );
+}
+
+function savedCareerTitle() {
+  try {
+    const email = localStorage.getItem("pathai.email") || "anonymous";
+    return JSON.parse(localStorage.getItem(`pathai.recommendation.v3.${email}`) || "{}").target_career?.title || "Pending profile";
+  } catch {
+    return "Pending profile";
+  }
 }
 
 function Stat({ icon, value, label }: any) {

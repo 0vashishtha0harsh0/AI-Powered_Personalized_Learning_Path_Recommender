@@ -8,12 +8,16 @@ import Skills from "./pages/Skills";
 import Progress from "./pages/Progress";
 import Profile from "./pages/Profile";
 import Onboarding from "./pages/Onboarding";
+import Login from "./pages/Login";
+import { getToken } from "./api";
+import { Navigate } from "react-router-dom";
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/onboarding" element={<Onboarding />} />
-      <Route element={<Layout />}>
+      <Route path="/login" element={<Login />} />
+      <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
+      <Route element={<RequireAuth><Layout /></RequireAuth>}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/path" element={<Path />} />
         <Route path="/mentor" element={<Mentor />} />
@@ -23,4 +27,8 @@ export default function App() {
       </Route>
     </Routes>
   );
+}
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  return getToken() ? children : <Navigate to="/login" replace />;
 }

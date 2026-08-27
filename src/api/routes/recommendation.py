@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from src.api.schemas.recommendation import (
     RecommendationRequest,
@@ -7,6 +7,7 @@ from src.api.schemas.recommendation import (
 from src.api.services.recommendation_service import (
     generate_recommendation,
 )
+from src.api.routes.auth import current_user
 
 
 router = APIRouter(
@@ -21,5 +22,6 @@ router = APIRouter(
 )
 def create_recommendation(
     request: RecommendationRequest,
+    _user=Depends(current_user),
 ):
     return generate_recommendation(request)

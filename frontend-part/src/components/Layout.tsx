@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { learner } from "../data/mock";
+import { clearSession } from "../api";
 
 const nav = [
   ["/", "Dashboard", Home],
@@ -60,7 +61,7 @@ export default function Layout() {
           <div className="mini-icon"><Target size={16} /></div>
           <small>Your current goal</small>
           <strong>{learner.goal}</strong>
-          <div className="mini-progress">
+            <div className="mini-progress">
             <span style={{ width: `${learner.progress}%` }} />
           </div>
           <small>{learner.progress}% complete</small>
@@ -76,6 +77,7 @@ export default function Layout() {
           <div className="top-user">
             <div className="avatar">A</div>
             <span>{learner.name}</span>
+            <button className="signout" onClick={() => { clearSession(); window.location.href = "/login"; }}>Sign out</button>
           </div>
         </header>
         <div className="page"><Outlet /></div>
