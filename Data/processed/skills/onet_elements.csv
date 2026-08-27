@@ -1,0 +1,121 @@
+element_id,element_name,element_type,element_description
+2.A.1.a,Reading Comprehension,skill,Understanding written sentences and paragraphs in work-related documents.
+2.A.1.b,Active Listening,skill,"Giving full attention to what other people are saying, taking time to understand the points being made, asking questions as appropriate, and not interrupting at inappropriate times."
+2.A.1.c,Writing,skill,Communicating effectively in writing as appropriate for the needs of the audience.
+2.A.1.d,Speaking,skill,Talking to others to convey information effectively.
+2.A.1.e,Mathematics,skill,Using mathematics to solve problems.
+2.A.1.f,Science,skill,Using scientific rules and methods to solve problems.
+2.A.2.a,Critical Thinking,skill,"Using logic and reasoning to identify the strengths and weaknesses of alternative solutions, conclusions, or approaches to problems."
+2.A.2.b,Active Learning,skill,Understanding the implications of new information for both current and future problem-solving and decision-making.
+2.A.2.c,Learning Strategies,skill,Selecting and using training/instructional methods and procedures appropriate for the situation when learning or teaching new things.
+2.A.2.d,Monitoring,skill,"Monitoring/Assessing performance of yourself, other individuals, or organizations to make improvements or take corrective action."
+2.B.1.a,Social Perceptiveness,skill,Being aware of others' reactions and understanding why they react as they do.
+2.B.1.b,Coordination,skill,Adjusting actions in relation to others' actions.
+2.B.1.c,Persuasion,skill,Persuading others to change their minds or behavior.
+2.B.1.d,Negotiation,skill,Bringing others together and trying to reconcile differences.
+2.B.1.e,Instructing,skill,Teaching others how to do something.
+2.B.1.f,Service Orientation,skill,Actively looking for ways to help people.
+2.B.2.i,Complex Problem Solving,skill,Identifying complex problems and reviewing related information to develop and evaluate options and implement solutions.
+2.B.3.a,Operations Analysis,skill,Analyzing needs and product requirements to create a design.
+2.B.3.b,Technology Design,skill,Generating or adapting equipment and technology to serve user needs.
+2.B.3.c,Equipment Selection,skill,Determining the kind of tools and equipment needed to do a job.
+2.B.3.d,Installation,skill,"Installing equipment, machines, wiring, or programs to meet specifications."
+2.B.3.e,Programming,skill,Writing computer programs for various purposes.
+2.B.3.g,Operations Monitoring,skill,"Watching gauges, dials, or other indicators to make sure a machine is working properly."
+2.B.3.h,Operation and Control,skill,Controlling operations of equipment or systems.
+2.B.3.j,Equipment Maintenance,skill,Performing routine maintenance on equipment and determining when and what kind of maintenance is needed.
+2.B.3.k,Troubleshooting,skill,Determining causes of operating errors and deciding what to do about it.
+2.B.3.l,Repairing,skill,Repairing machines or systems using the needed tools.
+2.B.3.m,Quality Control Analysis,skill,"Conducting tests and inspections of products, services, or processes to evaluate quality or performance."
+2.B.4.e,Judgment and Decision Making,skill,Considering the relative costs and benefits of potential actions to choose the most appropriate one.
+2.B.4.g,Systems Analysis,skill,"Determining how a system should work and how changes in conditions, operations, and the environment will affect outcomes."
+2.B.4.h,Systems Evaluation,skill,"Identifying measures or indicators of system performance and the actions needed to improve or correct performance, relative to the goals of the system."
+2.B.5.a,Time Management,skill,Managing one's own time and the time of others.
+2.B.5.b,Management of Financial Resources,skill,"Determining how money will be spent to get the work done, and accounting for these expenditures."
+2.B.5.c,Management of Material Resources,skill,"Obtaining and seeing to the appropriate use of equipment, facilities, and materials needed to do certain work."
+2.B.5.d,Management of Personnel Resources,skill,"Motivating, developing, and directing people as they work, identifying the best people for the job."
+2.C.1.a,Administration and Management,knowledge,"Knowledge of business and management principles involved in strategic planning, resource allocation, human resources modeling, leadership technique, production methods, and coordination of people and resources."
+2.C.1.b,Administrative,knowledge,"Knowledge of administrative and office procedures and systems such as word processing, managing files and records, stenography and transcription, designing forms, and workplace terminology."
+2.C.1.c,Economics and Accounting,knowledge,"Knowledge of economic and accounting principles and practices, the financial markets, banking, and the analysis and reporting of financial data."
+2.C.1.d,Sales and Marketing,knowledge,"Knowledge of principles and methods for showing, promoting, and selling products or services. This includes marketing strategy and tactics, product demonstration, sales techniques, and sales control systems."
+2.C.1.e,Customer and Personal Service,knowledge,"Knowledge of principles and processes for providing customer and personal services. This includes customer needs assessment, meeting quality standards for services, and evaluation of customer satisfaction."
+2.C.1.f,Personnel and Human Resources,knowledge,"Knowledge of principles and procedures for personnel recruitment, selection, training, compensation and benefits, labor relations and negotiation, and personnel information systems."
+2.C.2.a,Production and Processing,knowledge,"Knowledge of raw materials, production processes, quality control, costs, and other techniques for maximizing the effective manufacture and distribution of goods."
+2.C.2.b,Food Production,knowledge,"Knowledge of techniques and equipment for planting, growing, and harvesting food products (both plant and animal) for consumption, including storage/handling techniques."
+2.C.3.a,Computers and Electronics,knowledge,"Knowledge of circuit boards, processors, chips, electronic equipment, and computer hardware and software, including applications and programming."
+2.C.3.b,Engineering and Technology,knowledge,"Knowledge of the practical application of engineering science and technology. This includes applying principles, techniques, procedures, and equipment to the design and production of various goods and services."
+2.C.3.c,Design,knowledge,"Knowledge of design techniques, tools, and principles involved in production of precision technical plans, blueprints, drawings, and models."
+2.C.3.d,Building and Construction,knowledge,"Knowledge of materials, methods, and the tools involved in the construction or repair of houses, buildings, or other structures such as highways and roads."
+2.C.3.e,Mechanical,knowledge,"Knowledge of machines and tools, including their designs, uses, repair, and maintenance."
+2.C.4.a,Mathematics,knowledge,"Knowledge of arithmetic, algebra, geometry, calculus, statistics, and their applications."
+2.C.4.b,Physics,knowledge,"Knowledge and prediction of physical principles, laws, their interrelationships, and applications to understanding fluid, material, and atmospheric dynamics, and mechanical, electrical, atomic and sub-atomic structures and processes."
+2.C.4.c,Chemistry,knowledge,"Knowledge of the chemical composition, structure, and properties of substances and of the chemical processes and transformations that they undergo. This includes uses of chemicals and their interactions, danger signs, production techniques, and disposal methods."
+2.C.4.d,Biology,knowledge,"Knowledge of plant and animal organisms, their tissues, cells, functions, interdependencies, and interactions with each other and the environment."
+2.C.4.e,Psychology,knowledge,"Knowledge of human behavior and performance; individual differences in ability, personality, and interests; learning and motivation; psychological research methods; and the assessment and treatment of behavioral and affective disorders."
+2.C.4.f,Sociology and Anthropology,knowledge,"Knowledge of group behavior and dynamics, societal trends and influences, human migrations, ethnicity, cultures, and their history and origins."
+2.C.4.g,Geography,knowledge,"Knowledge of principles and methods for describing the features of land, sea, and air masses, including their physical characteristics, locations, interrelationships, and distribution of plant, animal, and human life."
+2.C.5.a,Medicine and Dentistry,knowledge,"Knowledge of the information and techniques needed to diagnose and treat human injuries, diseases, and deformities. This includes symptoms, treatment alternatives, drug properties and interactions, and preventive health-care measures."
+2.C.5.b,Therapy and Counseling,knowledge,"Knowledge of principles, methods, and procedures for diagnosis, treatment, and rehabilitation of physical and mental dysfunctions, and for career counseling and guidance."
+2.C.6,Education and Training,knowledge,"Knowledge of principles and methods for curriculum and training design, teaching and instruction for individuals and groups, and the measurement of training effects."
+2.C.7.a,English Language,knowledge,"Knowledge of the structure and content of the English language including the meaning and spelling of words, rules of composition, and grammar."
+2.C.7.b,Foreign Language,knowledge,"Knowledge of the structure and content of a foreign (non-English) language including the meaning and spelling of words, rules of composition and grammar, and pronunciation."
+2.C.7.c,Fine Arts,knowledge,"Knowledge of the theory and techniques required to compose, produce, and perform works of music, dance, visual arts, drama, and sculpture."
+2.C.7.d,History and Archeology,knowledge,"Knowledge of historical events and their causes, indicators, and effects on civilizations and cultures."
+2.C.7.e,Philosophy and Theology,knowledge,"Knowledge of different philosophical systems and religions. This includes their basic principles, values, ethics, ways of thinking, customs, practices, and their impact on human culture."
+2.C.8.a,Public Safety and Security,knowledge,"Knowledge of relevant equipment, policies, procedures, and strategies to promote effective local, state, or national security operations for the protection of people, data, property, and institutions."
+2.C.8.b,Law and Government,knowledge,"Knowledge of laws, legal codes, court procedures, precedents, government regulations, executive orders, agency rules, and the democratic political process."
+2.C.9.a,Telecommunications,knowledge,"Knowledge of transmission, broadcasting, switching, control, and operation of telecommunications systems."
+2.C.9.b,Communications and Media,knowledge,"Knowledge of media production, communication, and dissemination techniques and methods. This includes alternative ways to inform and entertain via written, oral, and visual media."
+2.C.10,Transportation,knowledge,"Knowledge of principles and methods for moving people or goods by air, rail, sea, or road, including the relative costs and benefits."
+1.A.1.a.1,Oral Comprehension,ability,The ability to listen to and understand information and ideas presented through spoken words and sentences.
+1.A.1.a.2,Written Comprehension,ability,The ability to read and understand information and ideas presented in writing.
+1.A.1.a.3,Oral Expression,ability,The ability to communicate information and ideas in speaking so others will understand.
+1.A.1.a.4,Written Expression,ability,The ability to communicate information and ideas in writing so others will understand.
+1.A.1.b.1,Fluency of Ideas,ability,"The ability to come up with a number of ideas about a topic (the number of ideas is important, not their quality, correctness, or creativity)."
+1.A.1.b.2,Originality,ability,"The ability to come up with unusual or clever ideas about a given topic or situation, or to develop creative ways to solve a problem."
+1.A.1.b.3,Problem Sensitivity,ability,"The ability to tell when something is wrong or is likely to go wrong. It does not involve solving the problem, only recognizing that there is a problem."
+1.A.1.b.4,Deductive Reasoning,ability,The ability to apply general rules to specific problems to produce answers that make sense.
+1.A.1.b.5,Inductive Reasoning,ability,The ability to combine pieces of information to form general rules or conclusions (includes finding a relationship among seemingly unrelated events).
+1.A.1.b.6,Information Ordering,ability,"The ability to arrange things or actions in a certain order or pattern according to a specific rule or set of rules (e.g., patterns of numbers, letters, words, pictures, mathematical operations)."
+1.A.1.b.7,Category Flexibility,ability,The ability to generate or use different sets of rules for combining or grouping things in different ways.
+1.A.1.c.1,Mathematical Reasoning,ability,The ability to choose the right mathematical methods or formulas to solve a problem.
+1.A.1.c.2,Number Facility,ability,"The ability to add, subtract, multiply, or divide quickly and correctly."
+1.A.1.d.1,Memorization,ability,"The ability to remember information such as words, numbers, pictures, and procedures."
+1.A.1.e.1,Speed of Closure,ability,"The ability to quickly make sense of, combine, and organize information into meaningful patterns."
+1.A.1.e.2,Flexibility of Closure,ability,"The ability to identify or detect a known pattern (a figure, object, word, or sound) that is hidden in other distracting material."
+1.A.1.e.3,Perceptual Speed,ability,"The ability to quickly and accurately compare similarities and differences among sets of letters, numbers, objects, pictures, or patterns. The things to be compared may be presented at the same time or one after the other. This ability also includes comparing a presented object with a remembered object."
+1.A.1.f.1,Spatial Orientation,ability,The ability to know your location in relation to the environment or to know where other objects are in relation to you.
+1.A.1.f.2,Visualization,ability,The ability to imagine how something will look after it is moved around or when its parts are moved or rearranged.
+1.A.1.g.1,Selective Attention,ability,The ability to concentrate on a task over a period of time without being distracted.
+1.A.1.g.2,Time Sharing,ability,"The ability to shift back and forth between two or more activities or sources of information (such as speech, sounds, touch, or other sources)."
+1.A.2.a.1,Arm-Hand Steadiness,ability,The ability to keep your hand and arm steady while moving your arm or while holding your arm and hand in one position.
+1.A.2.a.2,Manual Dexterity,ability,"The ability to quickly move your hand, your hand together with your arm, or your two hands to grasp, manipulate, or assemble objects."
+1.A.2.a.3,Finger Dexterity,ability,"The ability to make precisely coordinated movements of the fingers of one or both hands to grasp, manipulate, or assemble very small objects."
+1.A.2.b.1,Control Precision,ability,The ability to quickly and repeatedly adjust the controls of a machine or a vehicle to exact positions.
+1.A.2.b.2,Multilimb Coordination,ability,"The ability to coordinate two or more limbs (for example, two arms, two legs, or one leg and one arm) while sitting, standing, or lying down. It does not involve performing the activities while the whole body is in motion."
+1.A.2.b.3,Response Orientation,ability,"The ability to choose quickly between two or more movements in response to two or more different signals (lights, sounds, pictures). It includes the speed with which the correct response is started with the hand, foot, or other body part."
+1.A.2.b.4,Rate Control,ability,The ability to time your movements or the movement of a piece of equipment in anticipation of changes in the speed and/or direction of a moving object or scene.
+1.A.2.c.1,Reaction Time,ability,"The ability to quickly respond (with the hand, finger, or foot) to a signal (sound, light, picture) when it appears."
+1.A.2.c.2,Wrist-Finger Speed,ability,"The ability to make fast, simple, repeated movements of the fingers, hands, and wrists."
+1.A.2.c.3,Speed of Limb Movement,ability,The ability to quickly move the arms and legs.
+1.A.3.a.1,Static Strength,ability,"The ability to exert maximum muscle force to lift, push, pull, or carry objects."
+1.A.3.a.2,Explosive Strength,ability,"The ability to use short bursts of muscle force to propel oneself (as in jumping or sprinting), or to throw an object."
+1.A.3.a.3,Dynamic Strength,ability,The ability to exert muscle force repeatedly or continuously over time. This involves muscular endurance and resistance to muscle fatigue.
+1.A.3.a.4,Trunk Strength,ability,"The ability to use your abdominal and lower back muscles to support part of the body repeatedly or continuously over time without ""giving out"" or fatiguing."
+1.A.3.b.1,Stamina,ability,The ability to exert yourself physically over long periods of time without getting winded or out of breath.
+1.A.3.c.1,Extent Flexibility,ability,"The ability to bend, stretch, twist, or reach with your body, arms, and/or legs."
+1.A.3.c.2,Dynamic Flexibility,ability,"The ability to quickly and repeatedly bend, stretch, twist, or reach out with your body, arms, and/or legs."
+1.A.3.c.3,Gross Body Coordination,ability,"The ability to coordinate the movement of your arms, legs, and torso together when the whole body is in motion."
+1.A.3.c.4,Gross Body Equilibrium,ability,The ability to keep or regain your body balance or stay upright when in an unstable position.
+1.A.4.a.1,Near Vision,ability,The ability to see details at close range (within a few feet of the observer).
+1.A.4.a.2,Far Vision,ability,The ability to see details at a distance.
+1.A.4.a.3,Visual Color Discrimination,ability,"The ability to match or detect differences between colors, including shades of color and brightness."
+1.A.4.a.4,Night Vision,ability,The ability to see under low-light conditions.
+1.A.4.a.5,Peripheral Vision,ability,The ability to see objects or movement of objects to one's side when the eyes are looking ahead.
+1.A.4.a.6,Depth Perception,ability,"The ability to judge which of several objects is closer or farther away from you, or to judge the distance between you and an object."
+1.A.4.a.7,Glare Sensitivity,ability,The ability to see objects in the presence of a glare or bright lighting.
+1.A.4.b.1,Hearing Sensitivity,ability,The ability to detect or tell the differences between sounds that vary in pitch and loudness.
+1.A.4.b.2,Auditory Attention,ability,The ability to focus on a single source of sound in the presence of other distracting sounds.
+1.A.4.b.3,Sound Localization,ability,The ability to tell the direction from which a sound originated.
+1.A.4.b.4,Speech Recognition,ability,The ability to identify and understand the speech of another person.
+1.A.4.b.5,Speech Clarity,ability,The ability to speak clearly so others can understand you.
