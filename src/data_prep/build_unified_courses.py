@@ -8,10 +8,12 @@ Produces:
 import pandas as pd
 import numpy as np
 import os
+from pathlib import Path
 
-RAW = "../Data/raw/courses"
-OUT = "../Data/processed/courses"
-os.makedirs(OUT, exist_ok=True)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+RAW = PROJECT_ROOT / "Data" / "raw" / "courses"
+OUT = PROJECT_ROOT / "Data" / "processed" / "courses"
+OUT.mkdir(parents=True, exist_ok=True)
 
 def safe_str(x):
     return "" if pd.isna(x) else str(x).strip()

@@ -8,3 +8,4 @@ scikit-learn
 fastapi
 pydantic
 uvicorn
+httpx

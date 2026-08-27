@@ -17,10 +17,12 @@ import pandas as pd
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import os
+from pathlib import Path
 
-OUT = "../Data/processed"
-EMB = "../embeddings/skill_embeddings"
-os.makedirs(EMB, exist_ok=True)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+OUT = PROJECT_ROOT / "Data" / "processed"
+EMB = PROJECT_ROOT / "embeddings" / "skill_embeddings"
+EMB.mkdir(parents=True, exist_ok=True)
 
 # ------------------------------------------------------------
 # Load taxonomy tables built in Step 1

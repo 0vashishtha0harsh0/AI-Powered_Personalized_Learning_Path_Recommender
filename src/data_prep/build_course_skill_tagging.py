@@ -22,10 +22,12 @@ from flashtext import KeywordProcessor
 import faiss
 import os
 import re
+from pathlib import Path
 
-OUT = "../Data/processed"
-EMB = "../embeddings"
-os.makedirs(f"{OUT}/courses", exist_ok=True)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+OUT = PROJECT_ROOT / "Data" / "processed"
+EMB = PROJECT_ROOT / "embeddings"
+(OUT / "courses").mkdir(parents=True, exist_ok=True)
 
 # ------------------------------------------------------------
 # Load data built in previous steps
@@ -85,6 +87,12 @@ for _, row in skills.iterrows():
         kp.add_keyword(str(alias).strip(), row["skill_id"])
 
 skill_id_to_idx = {sid: i for i, sid in enumerate(skill_ids_order)}
+digital_skill_ids = set(
+    skills.loc[
+        skills["is_digital"].astype(str).str.lower().isin(["true", "1", "yes"]),
+        "skill_id",
+    ].astype(str)
+)
 
 print("Running keyword matching...")
 keyword_matches = {}  # course_row_idx -> set of skill_id
@@ -130,6 +138,12 @@ for i in range(n):
     scored = {}  # skill_idx -> (score, matched_by set)
 
     for skill_idx, sim in embed_matches.get(i, []):
+        skill_id = skill_ids_order[skill_idx]
+        # Similarity alone is too broad for general concepts such as design,
+        # communication, mathematics, or management. Keep semantic tags only
+        # for digital skills; other skills need explicit keyword evidence.
+        if skill_id not in digital_skill_ids:
+            continue
         boost = category_boost(skill_idx, category)
         scored[skill_idx] = [sim * boost, {"embedding"}]
 
