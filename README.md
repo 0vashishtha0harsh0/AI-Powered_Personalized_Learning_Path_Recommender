@@ -111,3 +111,32 @@ data is unavailable. Start the API with:
 ```bash
 uvicorn src.api.main:app --reload
 ```
+
+## Deployment
+
+The backend can be deployed on Render from `render.yaml`.
+
+Required Render environment variables:
+
+```bash
+GEMINI_API_KEY=your_google_ai_studio_key
+LLM_MODEL=gemini-3.6-flash
+```
+
+Render should use:
+
+```bash
+Build Command: pip install --upgrade pip && pip install -r requirements.txt
+Start Command: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+Health Check Path: /health
+```
+
+The frontend must point to the Render backend:
+
+```bash
+VITE_API_URL=https://ai-powered-personalized-learning-path-8bvq.onrender.com
+```
+
+After changing backend environment variables, redeploy the Render service. If
+users still see a session error, sign out and sign in again to refresh the
+stored auth token.

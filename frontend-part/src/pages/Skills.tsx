@@ -37,7 +37,12 @@ export default function Skills() {
       setData(getLearningData());
       navigate("/path");
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not build gap plan.");
+      const message = requestError instanceof Error ? requestError.message : "Could not build gap plan.";
+      if (message.toLowerCase().includes("session expired")) {
+        navigate("/login", { replace: true });
+        return;
+      }
+      setError(message);
       setBusy(false);
       setPhase("");
     }

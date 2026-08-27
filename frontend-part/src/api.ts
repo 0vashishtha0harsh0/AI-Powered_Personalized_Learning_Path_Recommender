@@ -25,7 +25,17 @@ export type Recommendation = {
   }>;
 };
 
-const API_URL = import.meta.env.VITE_API_URL || "https://ai-powered-personalized-learning-path-recommender-226dlmbfe.vercel.app";
+export const API_URL = import.meta.env.VITE_API_URL || "https://ai-powered-personalized-learning-path-8bvq.onrender.com";
+
+async function readError(response: Response, fallback: string) {
+  const body = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    clearSession();
+    return "Your session expired. Please sign in again.";
+  }
+  const detail = body.detail || body.message;
+  return detail ? `${fallback} ${detail}` : `${fallback} Server returned ${response.status}.`;
+}
 
 export function getToken() {
   return localStorage.getItem("pathai.token");
@@ -62,8 +72,7 @@ export async function createRecommendation(
   });
 
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.detail || "Could not build your learning path.");
+    throw new Error(await readError(response, "Could not build your learning path."));
   }
 
   return response.json();
@@ -81,13 +90,13 @@ export async function saveLearnerProfile(goal: string, currentSkills: string[]) 
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken() || ""}` },
     body: JSON.stringify({ goal, current_skills: currentSkills, level: "Intermediate", learning_style: "Hands-on" }),
   });
-  if (!response.ok) throw new Error("Could not save your learner profile.");
+  if (!response.ok) throw new Error(await readError(response, "Could not save your learner profile."));
 }
 
 export async function getSkills(): Promise<Array<{ id: string; label: string }>> {
   const response = await fetch(`${API_URL}/skills`, {
     headers: { Authorization: `Bearer ${getToken() || ""}` },
   });
-  if (!response.ok) throw new Error("Could not load the skill catalogue.");
+  if (!response.ok) throw new Error(await readError(response, "Could not load the skill catalogue."));
   return response.json();
 }

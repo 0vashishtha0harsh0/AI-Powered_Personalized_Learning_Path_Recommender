@@ -1,5 +1,6 @@
 import { Bot, Send, Sparkles, User, Loader2, AlertTriangle } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { API_URL, clearSession, getToken } from "../api";
 
 const starters = [
   "Why is Deep Learning next?",
@@ -9,12 +10,6 @@ const starters = [
 ];
 
 type Message = { role: "user" | "assistant"; content: string };
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
-function getToken() {
-  return localStorage.getItem("pathai.token");
-}
 
 function getRecommendationContext() {
   try {
@@ -43,12 +38,11 @@ export default function Mentor() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Check if the AI Mentor backend is configured
   useEffect(() => {
     fetch(`${API_URL}/mentor/status`)
       .then(r => r.json())
       .then(data => setMentorConfigured(data.configured))
-      .catch(() => setMentorConfigured(false));
+      .catch(() => setMentorConfigured(null));
   }, []);
 
   async function send(text = input) {
@@ -84,6 +78,10 @@ export default function Mentor() {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          clearSession();
+          throw new Error("Your session expired. Please sign in again.");
+        }
         throw new Error(body.detail || "Could not get a response from the AI Mentor.");
       }
 
@@ -92,9 +90,13 @@ export default function Mentor() {
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Something went wrong.";
       setError(errorMsg);
+      const showConfigurationHint =
+        /not configured|GEMINI_API_KEY|API key|Gemini API error/i.test(errorMsg);
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: `⚠️ ${errorMsg}\n\nIf the AI Mentor isn't configured yet, set the \`GEMINI_API_KEY\` environment variable on the backend server.`
+        content: showConfigurationHint
+          ? `⚠️ ${errorMsg}\n\nThe backend reports the mentor provider could not be used. Check \`GEMINI_API_KEY\` and the selected \`LLM_MODEL\` on Render, then redeploy.`
+          : `⚠️ ${errorMsg}`
       }]);
     } finally {
       setLoading(false);

@@ -14,9 +14,8 @@ from fastapi import HTTPException
 # Override model:
 #   LLM_MODEL=gemini-3.6-flash      (default)
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+def _env(name: str) -> str:
+    return os.environ.get(name, "").strip()
 
 DEFAULT_MODELS = {
     "gemini": "gemini-3.6-flash",
@@ -42,11 +41,11 @@ Core rules:
 
 def _get_provider():
     """Detect which LLM provider is configured. Gemini is preferred."""
-    if GEMINI_API_KEY:
+    if _env("GEMINI_API_KEY"):
         return "gemini"
-    if OPENAI_API_KEY:
+    if _env("OPENAI_API_KEY"):
         return "openai"
-    if ANTHROPIC_API_KEY:
+    if _env("ANTHROPIC_API_KEY"):
         return "anthropic"
     return None
 
@@ -115,7 +114,7 @@ async def _call_gemini(messages: list[dict]) -> str:
 
     headers = {
         "Content-Type": "application/json",
-        "x-goog-api-key": GEMINI_API_KEY,
+        "x-goog-api-key": _env("GEMINI_API_KEY"),
     }
 
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -146,7 +145,7 @@ async def _call_openai(messages: list[dict]) -> str:
     base_url = os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
 
     headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Authorization": f"Bearer {_env('OPENAI_API_KEY')}",
         "Content-Type": "application/json",
     }
     payload = {
@@ -186,7 +185,7 @@ async def _call_anthropic(messages: list[dict]) -> str:
             user_messages.append(msg)
 
     headers = {
-        "x-api-key": ANTHROPIC_API_KEY,
+        "x-api-key": _env("ANTHROPIC_API_KEY"),
         "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
     }
