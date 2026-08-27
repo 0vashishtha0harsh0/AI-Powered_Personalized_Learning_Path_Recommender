@@ -12,14 +12,14 @@ from fastapi import HTTPException
 #   ANTHROPIC_API_KEY=sk-ant-...    (Anthropic Claude — fallback)
 #
 # Override model:
-#   LLM_MODEL=gemini-2.0-flash      (default)
+#   LLM_MODEL=gemini-3.6-flash      (default)
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 DEFAULT_MODELS = {
-    "gemini": "gemini-2.0-flash",
+    "gemini": "gemini-3.6-flash",
     "openai": "gpt-4o-mini",
     "anthropic": "claude-sonnet-4-20250514",
 }
@@ -53,7 +53,7 @@ def _get_provider():
 
 def _get_model(provider: str) -> str:
     """Get the model name, respecting LLM_MODEL override."""
-    return os.environ.get("LLM_MODEL", DEFAULT_MODELS.get(provider, "gemini-2.0-flash"))
+    return os.environ.get("LLM_MODEL", DEFAULT_MODELS.get(provider, "gemini-3.6-flash"))
 
 
 def _build_user_message(question: str, context: dict) -> str:
