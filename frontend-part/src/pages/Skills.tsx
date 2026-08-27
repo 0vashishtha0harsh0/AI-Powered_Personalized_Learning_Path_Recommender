@@ -1,11 +1,48 @@
 import { AlertTriangle, Brain, Sparkles } from "lucide-react";
+import { useState } from "react";
 import ProgressBar from "../components/ProgressBar";
 import SectionTitle from "../components/SectionTitle";
-import { skillGaps, skills } from "../data/mock";
+import { getLearningData } from "../data/mock";
 import { useNavigate } from "react-router-dom";
+import { createRecommendation, saveLearnerProfile, saveRecommendation } from "../api";
+import { getStoredGoal, getStoredSkills } from "../state";
 
 export default function Skills() {
   const navigate = useNavigate();
+  const [data, setData] = useState(() => getLearningData());
+  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState("");
+  const [error, setError] = useState("");
+  const { skillGaps, skills } = data;
+
+  async function buildGapPlan() {
+    const goal = getStoredGoal();
+    const currentSkills = getStoredSkills();
+    if (!goal.trim()) {
+      navigate("/onboarding");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    try {
+      setPhase("Reading profile");
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setPhase("Analyzing skill gaps");
+      await saveLearnerProfile(goal, currentSkills);
+      setPhase("Matching courses from dataset");
+      const recommendation = await createRecommendation(goal, currentSkills);
+      setPhase("Building gap plan");
+      saveRecommendation(recommendation);
+      setData(getLearningData());
+      navigate("/path");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not build gap plan.");
+      setBusy(false);
+      setPhase("");
+    }
+  }
+
   return (
     <>
       <SectionTitle
@@ -37,14 +74,15 @@ export default function Skills() {
           <p className="muted">
             These areas have the highest impact on your target career.
           </p>
+          {error && <p className="form-error">{error}</p>}
           {skillGaps.slice(0, 8).map(([name, value]) => (
             <div className="gap" key={name}>
               <div><span>{name}</span><b>{value}%</b></div>
               <ProgressBar value={value as number} />
             </div>
           ))}
-          <button className="btn primary full" onClick={() => navigate("/path")}>
-            <Sparkles size={16} /> Build gap plan
+          <button className="btn primary full" onClick={buildGapPlan} disabled={busy}>
+            <Sparkles size={16} /> {busy ? phase || "Building gap plan" : "Build gap plan"}
           </button>
         </div>
       </div>

@@ -1,11 +1,13 @@
 import { Edit3, Target, UserRound } from "lucide-react";
 import { useState } from "react";
 import SectionTitle from "../components/SectionTitle";
-import { learner, skills } from "../data/mock";
+import { getLearningData } from "../data/mock";
 import { getProfile, saveProfile } from "../state";
 
 export default function Profile() {
   const saved = getProfile();
+  const [data, setData] = useState(() => getLearningData());
+  const { learner, skills } = data;
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(saved.name || learner.name);
   const [level, setLevel] = useState(saved.level || learner.level);
@@ -14,9 +16,7 @@ export default function Profile() {
   function save() {
     const nextName = name.trim() || learner.name;
     saveProfile({ name: nextName, level, style });
-    learner.name = nextName;
-    learner.level = level;
-    learner.style = style;
+    setData(getLearningData());
     setEditing(false);
   }
 
@@ -29,7 +29,7 @@ export default function Profile() {
         <div>
           <span className="tag">LEARNER</span>
           {editing ? <input className="profile-input" value={name} onChange={e => setName(e.target.value)} /> : <h2>{learner.name}</h2>}
-          <p className="muted">{learner.level} · {learner.style}</p>
+          <p className="muted">{editing ? `${level} · ${style}` : `${learner.level} · ${learner.style}`}</p>
         </div>
         {editing ? <button className="btn primary" onClick={save}>Save profile</button> : <button className="btn ghost" onClick={() => setEditing(true)}><Edit3 size={15} /> Edit profile</button>}
       </div>

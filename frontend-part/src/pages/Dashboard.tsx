@@ -1,21 +1,33 @@
 import {
   ArrowRight, Clock3, Flame, Sparkles, Target, Trophy
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ProgressBar from "../components/ProgressBar";
 import SectionTitle from "../components/SectionTitle";
-import { learner, recommendations, skills } from "../data/mock";
-import { getCompletedMilestones } from "../state";
+import { getLearningData } from "../data/mock";
+import { PATHAI_STATE_CHANGED } from "../state";
 
 export default function Dashboard() {
+  const [data, setData] = useState(() => getLearningData());
+
+  useEffect(() => {
+    const refresh = () => setData(getLearningData());
+    window.addEventListener(PATHAI_STATE_CHANGED, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(PATHAI_STATE_CHANGED, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const { learner, recommendations, skills, completion, completedMilestones } = data;
   const next = recommendations[0] || {
     title: "Build your learning path",
     reason: "Complete onboarding to get recommendations for your goal.",
     time: "Not started",
     level: "PathAI",
   };
-  const completed = getCompletedMilestones();
-  const completion = learner.milestones ? Math.round((completed.length / learner.milestones) * 100) : 0;
 
   return (
     <>
@@ -42,7 +54,7 @@ export default function Dashboard() {
           </div>
           <div className="goal-bottom">
             <b>{completion}% complete</b>
-            <span>{completed.length} of {learner.milestones} milestones complete</span>
+            <span>{completedMilestones.length} of {learner.milestones} milestones complete</span>
           </div>
         </div>
         <div className="goal-orb">✦</div>
