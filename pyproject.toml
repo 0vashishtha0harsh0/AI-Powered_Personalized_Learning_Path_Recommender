@@ -1,2 +1,20 @@
+[project]
+name = "personalized-learning-path-recommender"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas",
+    "numpy",
+    "openpyxl",
+    "sentence-transformers",
+    "faiss-cpu",
+    "flashtext",
+    "scikit-learn",
+    "fastapi",
+    "pydantic",
+    "uvicorn",
+    "httpx",
+]
+
 [tool.vercel]
 entrypoint = "src.api.main:app"
