@@ -3,12 +3,10 @@ import {
   BarChart, Bar, XAxis, ResponsiveContainer, Tooltip
 } from "recharts";
 import SectionTitle from "../components/SectionTitle";
-import { learner, path, weekly } from "../data/mock";
-import { getCompletedMilestones } from "../state";
+import { getLearningData, weekly } from "../data/mock";
 
 export default function Progress() {
-  const completed = getCompletedMilestones();
-  const completion = path.length ? Math.round((completed.length / path.length) * 100) : 0;
+  const { learner, path, completedMilestones: completed, completion } = getLearningData();
   return (
     <>
       <SectionTitle

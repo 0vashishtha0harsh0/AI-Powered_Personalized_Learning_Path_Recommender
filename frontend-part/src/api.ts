@@ -1,3 +1,5 @@
+import { notifyPathAIStateChanged } from "./state";
+
 export type Recommendation = {
   goal: string;
   current_skills: string[];
@@ -70,6 +72,7 @@ export async function createRecommendation(
 export function saveRecommendation(recommendation: Recommendation) {
   const email = localStorage.getItem("pathai.email") || "anonymous";
   localStorage.setItem(`pathai.recommendation.v3.${email}`, JSON.stringify(recommendation));
+  notifyPathAIStateChanged();
 }
 
 export async function saveLearnerProfile(goal: string, currentSkills: string[]) {

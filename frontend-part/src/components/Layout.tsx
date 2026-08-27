@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   NavLink,
   Outlet
@@ -16,7 +16,8 @@ import {
   Target
 } from "lucide-react";
 
-import { learner } from "../data/mock";
+import { getLearningData } from "../data/mock";
+import { PATHAI_STATE_CHANGED } from "../state";
 import { clearSession } from "../api";
 
 const nav = [
@@ -30,6 +31,19 @@ const nav = [
 
 export default function Layout() {
   const [open, setOpen] = useState(false);
+  const [data, setData] = useState(() => getLearningData());
+
+  useEffect(() => {
+    const refresh = () => setData(getLearningData());
+    window.addEventListener(PATHAI_STATE_CHANGED, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(PATHAI_STATE_CHANGED, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const { learner } = data;
 
   return (
     <div className="app">
@@ -61,7 +75,7 @@ export default function Layout() {
           <div className="mini-icon"><Target size={16} /></div>
           <small>Your current goal</small>
           <strong>{learner.goal}</strong>
-            <div className="mini-progress">
+          <div className="mini-progress">
             <span style={{ width: `${learner.progress}%` }} />
           </div>
           <small>{learner.progress}% complete</small>

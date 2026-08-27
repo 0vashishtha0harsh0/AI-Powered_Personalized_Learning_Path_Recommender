@@ -1,27 +1,32 @@
 import {
   Check, Lock, Play, Clock3, Sparkles, ArrowRight
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import SectionTitle from "../components/SectionTitle";
 import ProgressBar from "../components/ProgressBar";
-import { path, LearningPathItem } from "../data/mock";
+import { getLearningData, LearningPathItem } from "../data/mock";
 import { completeMilestone, getCompletedMilestones } from "../state";
 
 export default function Path() {
+  const [data, setData] = useState(() => getLearningData());
   const [completed, setCompleted] = useState(getCompletedMilestones);
-  const [selected, setSelected] = useState<LearningPathItem>(path.find((item: LearningPathItem) => item.status === "current") || path[0] || {
+  const path = data.path;
+  const defaultSelection = useMemo(() => path.find((item: LearningPathItem) => item.status === "current") || path[0] || {
     title: "No learning path yet",
     status: "current",
     type: "Getting started",
     time: "Complete onboarding first",
-  });
+  }, [path]);
+  const [selectedTitle, setSelectedTitle] = useState(defaultSelection.title);
+  const selected = path.find((item) => item.title === selectedTitle) || defaultSelection;
 
   function continueSelected() {
     const index = path.findIndex((item: LearningPathItem) => item.title === selected.title);
     if (index < 0) return;
     completeMilestone(index + 1);
     setCompleted(getCompletedMilestones());
+    setData(getLearningData());
   }
 
   return (
@@ -38,7 +43,7 @@ export default function Path() {
             <button
               className={`path-node ${completed.includes(i + 1) ? "done" : item.status}`}
               key={item.title}
-              onClick={() => setSelected(item)}
+              onClick={() => setSelectedTitle(item.title)}
             >
               <div className="node-icon">
                 {completed.includes(i + 1) && <Check size={17} />}
