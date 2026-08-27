@@ -23,7 +23,7 @@ export type Recommendation = {
   }>;
 };
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "https://ai-powered-personalized-learning-path-recommender-226dlmbfe.vercel.app";
 
 export function getToken() {
   return localStorage.getItem("pathai.token");
