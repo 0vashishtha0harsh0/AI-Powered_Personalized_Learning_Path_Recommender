@@ -2,7 +2,6 @@ import { ArrowRight, BookOpen, LockKeyhole, Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authenticate } from "../api";
-import LoadingOverlay from "../components/LoadingOverlay";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -18,8 +17,7 @@ export default function Login() {
     setError("");
     try {
       await authenticate(email, password, register);
-      const emailKey = `pathai.recommendation.v3.${email.trim().toLowerCase()}`;
-      navigate(register || !localStorage.getItem(emailKey) ? "/onboarding" : "/", { replace: true });
+      navigate(register ? "/onboarding" : "/", { replace: true });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Authentication failed.");
       setLoading(false);
@@ -27,11 +25,6 @@ export default function Login() {
   }
 
   return <main className="auth-page">
-    <LoadingOverlay
-      show={loading}
-      title={register ? "Creating your account" : "Signing you in"}
-      message="Please wait while we set up your secure session."
-    />
     <div className="auth-panel">
       <div className="onboard-logo"><div className="logo"><BookOpen size={17} /></div> PathAI</div>
       <h1>{register ? "Create your account" : "Welcome back"}</h1>

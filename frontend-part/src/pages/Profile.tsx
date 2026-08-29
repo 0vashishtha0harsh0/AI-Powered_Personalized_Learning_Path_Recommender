@@ -1,6 +1,7 @@
-import { Edit3, Target, UserRound } from "lucide-react";
+import { Edit3, LogOut, Target, UserRound } from "lucide-react";
 import { useState } from "react";
 import SectionTitle from "../components/SectionTitle";
+import { clearSession } from "../api";
 import { getLearningData } from "../data/mock";
 import { getProfile, saveProfile } from "../state";
 
@@ -18,6 +19,11 @@ export default function Profile() {
     saveProfile({ name: nextName, level, style });
     setData(getLearningData());
     setEditing(false);
+  }
+
+  function signOut() {
+    clearSession();
+    window.location.href = "/login";
   }
 
   return (
@@ -38,6 +44,18 @@ export default function Profile() {
         <label>Experience level<select value={level} onChange={e => setLevel(e.target.value)}><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></label>
         <label>Learning style<input value={style} onChange={e => setStyle(e.target.value)} /></label>
       </div>}
+
+      <div className="account-actions card">
+        <div>
+          <span className="tag">ACCOUNT</span>
+          <h3>Session</h3>
+          <p className="muted">Sign out from this device.</p>
+        </div>
+        <button className="signout" onClick={signOut}>
+          <LogOut size={15} />
+          Sign out
+        </button>
+      </div>
 
       <div className="grid-2">
         <div className="card">

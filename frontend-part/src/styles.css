@@ -52,7 +52,9 @@ a:hover { text-decoration: underline; }
   position: fixed; inset: 0 auto 0 0;
   z-index: 20;
   display: flex; flex-direction: column;
+  overflow-y: auto;
 }
+.sidebar-backdrop { display: none; }
 .brand {
   display: flex; align-items: center; gap: 10px;
   padding: 0 8px 28px;
@@ -95,15 +97,15 @@ nav a.active {
 
 /* ---- topbar ---- */
 .topbar {
-  height: 56px;
+  min-height: 56px;
   padding: 0 32px;
   border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
   background: var(--surface);
   position: sticky; top: 0; z-index: 10;
 }
-.top-title { color: var(--text-tertiary); font-size: 13px; }
-.top-user { display: flex; align-items: center; gap: 8px; }
+.top-title { color: var(--text-tertiary); font-size: 13px; min-width: 0; }
+.top-user { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .avatar {
   width: 30px; height: 30px;
   display: grid; place-items: center;
@@ -111,9 +113,7 @@ nav a.active {
   background: var(--accent); color: white;
   font-weight: 600; font-size: 12px;
 }
-.top-user span { font-weight: 500; font-size: 13px; }
-.signout { font-size: 12px; color: var(--text-tertiary); margin-left: 4px; }
-.signout:hover { color: var(--red); }
+.top-user > span { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; font-size: 13px; }
 
 /* ---- page ---- */
 .page {
@@ -441,6 +441,31 @@ p { line-height: 1.6; }
   flex-shrink: 0;
 }
 .profile-card .btn { margin-left: auto; }
+.account-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.account-actions h3 { margin-bottom: 0; }
+.signout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.signout:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
 .profile-goal { display: flex; gap: 12px; margin-top: 14px; }
 .profile-goal svg { color: var(--accent); }
 .profile-goal h3 { margin: 0; }
@@ -491,9 +516,8 @@ p { line-height: 1.6; }
   outline: none; transition: border-color var(--transition);
 }
 .auth-panel input:focus { border-color: var(--accent); }
-.auth-switch, .signout { color: var(--accent); background: none; font-size: 12px; font-weight: 500; }
+.auth-switch { color: var(--accent); background: none; font-size: 12px; font-weight: 500; }
 .auth-switch { display: block; width: 100%; margin-top: 16px; text-align: center; }
-.signout { margin-left: 6px; }
 
 .onboard-logo {
   position: absolute; top: 24px; left: 28px;
@@ -671,8 +695,16 @@ p { line-height: 1.6; }
     transform: translateX(-100%);
     transition: transform .25s ease;
     box-shadow: 20px 0 60px rgba(0,0,0,.1);
+    z-index: 30;
   }
   .sidebar.show { transform: translateX(0); }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    display: block;
+    background: rgba(26, 29, 35, .28);
+  }
   .close { display: block; margin-left: auto; }
   .main { margin-left: 0; }
   .menu { display: grid; place-items: center; }
@@ -685,7 +717,8 @@ p { line-height: 1.6; }
 
 @media (max-width: 560px) {
   .top-title { display: none; }
-  .top-user span { display: none; }
+  .top-user { margin-left: auto; }
+  .top-user > span { display: none; }
   .hero { align-items: start; flex-direction: column; }
   .hero .btn { width: 100%; }
   .goal-orb { display: none; }
@@ -697,8 +730,9 @@ p { line-height: 1.6; }
   .message { max-width: 88%; }
   .profile-card { align-items: start; flex-wrap: wrap; }
   .profile-card .btn { width: 100%; margin-left: 0; }
+  .account-actions { align-items: stretch; flex-direction: column; }
+  .account-actions .signout { width: 100%; }
   .profile-editor { grid-template-columns: 1fr; }
   .auth-panel { padding: 24px; }
   .auth-panel .onboard-logo { margin-bottom: 36px; }
-  .signout { display: none; }
 }

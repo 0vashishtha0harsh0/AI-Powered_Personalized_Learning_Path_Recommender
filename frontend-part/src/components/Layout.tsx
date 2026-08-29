@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { getLearningData } from "../data/mock";
 import { PATHAI_STATE_CHANGED } from "../state";
-import { clearSession } from "../api";
 
 const nav = [
   ["/", "Dashboard", Home],
@@ -41,6 +40,7 @@ export default function Layout() {
 
   return (
     <div className="app">
+      {open && <button className="sidebar-backdrop" aria-label="Close navigation" onClick={() => setOpen(false)} />}
       <aside className={open ? "sidebar show" : "sidebar"}>
         <div className="brand">
           <div className="logo"><BookOpen size={17} /></div>
@@ -76,7 +76,6 @@ export default function Layout() {
           <div className="top-user">
             <div className="avatar">{(learner.name || "U")[0].toUpperCase()}</div>
             <span>{learner.name}</span>
-            <button className="signout" onClick={() => { clearSession(); window.location.href = "/login"; }}>Sign out</button>
           </div>
         </header>
         <div className="page"><Outlet /></div>
