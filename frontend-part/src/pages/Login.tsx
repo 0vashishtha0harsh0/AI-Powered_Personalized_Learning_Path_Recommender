@@ -2,6 +2,7 @@ import { ArrowRight, BookOpen, LockKeyhole, Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authenticate } from "../api";
+import LoadingOverlay from "../components/LoadingOverlay";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -26,9 +27,13 @@ export default function Login() {
   }
 
   return <main className="auth-page">
+    <LoadingOverlay
+      show={loading}
+      title={register ? "Creating your account" : "Signing you in"}
+      message="Please wait while we set up your secure session."
+    />
     <div className="auth-panel">
       <div className="onboard-logo"><div className="logo"><BookOpen size={17} /></div> PathAI</div>
-      <span className="eyebrow">PERSONALIZED LEARNING</span>
       <h1>{register ? "Create your account" : "Welcome back"}</h1>
       <p className="muted">Your account keeps your goal, skills, progress and recommendations together.</p>
       <form onSubmit={submit}>

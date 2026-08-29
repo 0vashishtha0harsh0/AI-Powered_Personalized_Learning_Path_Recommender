@@ -1,8 +1,9 @@
-import { ArrowRight, BookOpen, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { createRecommendation, getSkills, saveLearnerProfile, saveRecommendation } from "../api";
 import { saveProfile } from "../state";
+import LoadingOverlay from "../components/LoadingOverlay";
 
 export default function Onboarding() {
   const [goal, setGoal] = useState("");
@@ -11,11 +12,15 @@ export default function Onboarding() {
   const [selectedSkills, setSelectedSkills] = useState<Array<{ label: string; level: string }>>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingSkills, setLoadingSkills] = useState(true);
   const [buildPhase, setBuildPhase] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    getSkills().then(setSkillOptions).catch(() => setSkillOptions([]));
+    getSkills()
+      .then(setSkillOptions)
+      .catch(() => setSkillOptions([]))
+      .finally(() => setLoadingSkills(false));
   }, []);
 
   async function buildPath() {
@@ -48,9 +53,13 @@ export default function Onboarding() {
 
   return (
     <main className="onboarding">
+      <LoadingOverlay
+        show={loadingSkills || loading}
+        title={loading ? "Building your learning path" : "Loading skill catalogue"}
+        message={loading ? buildPhase || "Preparing your recommendation." : "Please wait while we load the skills you can choose from."}
+      />
       <div className="onboard-logo"><BookOpen size={17} /> PathAI</div>
       <div className="onboard-content">
-        <span className="eyebrow"><Sparkles size={14} /> PERSONALIZED LEARNING</span>
         <h1>Your goal.<br /><em>Your path.</em></h1>
         <p>
           Tell us where you want to go. We'll turn your skills,

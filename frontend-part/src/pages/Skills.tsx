@@ -6,6 +6,7 @@ import { getLearningData } from "../data/mock";
 import { useNavigate } from "react-router-dom";
 import { createRecommendation, saveLearnerProfile, saveRecommendation } from "../api";
 import { getStoredGoal, getStoredSkills } from "../state";
+import LoadingOverlay from "../components/LoadingOverlay";
 
 export default function Skills() {
   const navigate = useNavigate();
@@ -50,6 +51,11 @@ export default function Skills() {
 
   return (
     <>
+      <LoadingOverlay
+        show={busy}
+        title="Building your learning plan"
+        message={phase || "Please wait while we analyze your skill gaps."}
+      />
       <SectionTitle
         title="Skill map"
         text="A live view of your strengths and learning gaps."
