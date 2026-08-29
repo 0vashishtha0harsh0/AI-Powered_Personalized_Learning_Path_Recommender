@@ -661,6 +661,11 @@ p { line-height: 1.6; }
 .loading-panel p {
   color: var(--text-secondary);
   font-size: 13px;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeUp .24s ease both;
 }
 .loading-bar {
   height: 5px;
