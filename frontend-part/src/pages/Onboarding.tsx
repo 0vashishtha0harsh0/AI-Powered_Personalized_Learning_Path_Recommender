@@ -5,6 +5,12 @@ import { createRecommendation, getSkills, saveLearnerProfile, saveRecommendation
 import { saveProfile } from "../state";
 import LoadingOverlay from "../components/LoadingOverlay";
 
+function waitForLoadingPaint() {
+  return new Promise<void>(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
 export default function Onboarding() {
   const [goal, setGoal] = useState("");
   const [skillOptions, setSkillOptions] = useState<Array<{ id: string; label: string }>>([]);
@@ -28,6 +34,8 @@ export default function Onboarding() {
     setLoading(true);
     setError("");
     try {
+      setBuildPhase("Preparing your learning path");
+      await waitForLoadingPaint();
       const skills = selectedSkills.map(skill => skill.label);
       const accountEmail = localStorage.getItem("pathai.email") || "anonymous";
       localStorage.setItem(`pathai.skills.${accountEmail}`, JSON.stringify(skills));
@@ -37,10 +45,13 @@ export default function Onboarding() {
       setBuildPhase("Reading your goal");
       await new Promise(resolve => setTimeout(resolve, 450));
       setBuildPhase("Mapping your skills");
+      await waitForLoadingPaint();
       await saveLearnerProfile(goal.trim(), skills);
       setBuildPhase("Ranking careers and skill gaps");
+      await waitForLoadingPaint();
       const recommendation = await createRecommendation(goal.trim(), skills);
       setBuildPhase("Ordering your milestones");
+      await waitForLoadingPaint();
       saveRecommendation(recommendation);
       navigate("/", { replace: true });
       window.location.reload();
@@ -68,12 +79,14 @@ export default function Onboarding() {
         <div className="goal-input">
           <textarea
             value={goal}
+            disabled={loading}
             onChange={e => setGoal(e.target.value)}
             placeholder="I want to become an AI Engineer in 6 months..."
           />
           <input
             className="onboard-skills"
             value={skillSearch}
+            disabled={loading || loadingSkills}
             onChange={e => setSkillSearch(e.target.value)}
             placeholder="Search your current skills..."
           />
@@ -81,14 +94,14 @@ export default function Onboarding() {
             <div className="selected-skills">{selectedSkills.map(skill => (
               <div className="selected-skill" key={skill.label}>
                 <span>{skill.label}</span>
-                <select value={skill.level} onChange={event => setSelectedSkills(selectedSkills.map(item => item.label === skill.label ? { ...item, level: event.target.value } : item))}>
+                <select disabled={loading} value={skill.level} onChange={event => setSelectedSkills(selectedSkills.map(item => item.label === skill.label ? { ...item, level: event.target.value } : item))}>
                   <option>Beginner</option><option>Intermediate</option><option>Advanced</option>
                 </select>
-                <button type="button" onClick={() => setSelectedSkills(selectedSkills.filter(item => item.label !== skill.label))}>×</button>
+                <button type="button" disabled={loading} onClick={() => setSelectedSkills(selectedSkills.filter(item => item.label !== skill.label))}>×</button>
               </div>
             ))}</div>
             {skillOptions.filter(skill => skill.label.toLowerCase().includes(skillSearch.toLowerCase())).slice(0, 12).map(skill => (
-              <button type="button" className="skill-option" key={skill.id} onClick={() => !selectedSkills.some(item => item.label === skill.label) && setSelectedSkills([...selectedSkills, { label: skill.label, level: "Intermediate" }])}>{skill.label}</button>
+              <button type="button" className="skill-option" disabled={loading} key={skill.id} onClick={() => !selectedSkills.some(item => item.label === skill.label) && setSelectedSkills([...selectedSkills, { label: skill.label, level: "Intermediate" }])}>{skill.label}</button>
             ))}
           </div>
           <button onClick={buildPath} disabled={!goal.trim() || loading}>
