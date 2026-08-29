@@ -134,13 +134,13 @@ print_banner() {
     echo -e "  ${GREEN}API Docs${NC}  → http://localhost:${BACKEND_PORT}/docs"
     echo ""
     if [ -n "$GEMINI_API_KEY" ]; then
-        echo -e "  ${CYAN}AI Mentor${NC} → Gemini (${LLM_MODEL:-gemini-2.0-flash})"
+        echo -e "  ${CYAN}AI Mentor${NC} → Gemini (${GEMINI_MODEL:-${LLM_MODEL:-gemini-2.0-flash}})"
     fi
     if [ -n "$GROQ_API_KEY" ]; then
-        echo -e "  ${CYAN}AI Mentor${NC} → Groq (${LLM_MODEL:-llama-3.3-70b-versatile}) [fast fallback]"
+        echo -e "  ${CYAN}AI Mentor${NC} → Groq (${GROQ_MODEL:-${LLM_MODEL:-openai/gpt-oss-20b}}) [fast fallback]"
     fi
     if [ -n "$OPENAI_API_KEY" ]; then
-        echo -e "  ${CYAN}AI Mentor${NC} → OpenAI (${LLM_MODEL:-gpt-4o-mini})"
+        echo -e "  ${CYAN}AI Mentor${NC} → OpenAI (${OPENAI_MODEL:-${LLM_MODEL:-gpt-4o-mini}})"
     fi
     if [ -n "$ANTHROPIC_API_KEY" ]; then
         echo -e "  ${CYAN}AI Mentor${NC} → Anthropic Claude"

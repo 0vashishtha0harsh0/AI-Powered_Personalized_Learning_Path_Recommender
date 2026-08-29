@@ -22,10 +22,16 @@ def _env(name: str) -> str:
 
 DEFAULT_MODELS = {
     "gemini": "gemini-2.0-flash",
-    "groq": "llama-3.3-70b-versatile",
+    "groq": "openai/gpt-oss-20b",
     "openai": "gpt-4o-mini",
     "anthropic": "claude-sonnet-4-20250514",
 }
+
+GROQ_FALLBACK_MODELS = (
+    "openai/gpt-oss-120b",
+    "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile",
+)
 
 MENTOR_SYSTEM_PROMPT = """You are PathAI Mentor — an expert AI learning coach inside the PathAI personalized learning platform.
 
@@ -65,8 +71,48 @@ def _has_groq() -> bool:
 
 
 def _get_model(provider: str) -> str:
-    """Get the model name, respecting LLM_MODEL override."""
-    return os.environ.get("LLM_MODEL", DEFAULT_MODELS.get(provider, "gemini-2.0-flash"))
+    """Get the model name, preferring provider-specific overrides."""
+    provider_env = f"{provider.upper()}_MODEL"
+    provider_model = _env(provider_env)
+    if provider_model:
+        return provider_model
+
+    legacy_model = _env("LLM_MODEL")
+    if legacy_model and _model_matches_provider(provider, legacy_model):
+        return legacy_model
+
+    return DEFAULT_MODELS.get(provider, "gemini-2.0-flash")
+
+
+def _model_matches_provider(provider: str, model: str) -> bool:
+    """Avoid applying a legacy global model override to the wrong provider."""
+    provider_prefixes = {
+        "gemini": ("gemini-",),
+        "groq": (
+            "openai/",
+            "llama",
+            "meta-llama/",
+            "qwen/",
+            "deepseek",
+            "moonshotai/",
+            "mistral",
+            "groq/",
+        ),
+        "anthropic": ("claude-",),
+    }
+    prefixes = provider_prefixes.get(provider)
+    return not prefixes or model.startswith(prefixes)
+
+
+def _ordered_models(*models: str) -> list[str]:
+    """Return unique non-empty model names while preserving order."""
+    ordered = []
+    seen = set()
+    for model in models:
+        if model and model not in seen:
+            ordered.append(model)
+            seen.add(model)
+    return ordered
 
 
 def _build_user_message(question: str, context: dict) -> str:
@@ -191,33 +237,57 @@ async def _call_gemini(messages: list[dict]) -> str:
 # ---------------------------------------------------------------------------
 async def _call_groq(messages: list[dict]) -> str:
     """Call Groq API (OpenAI-compatible, ultra-fast LPU inference)."""
-    model = os.environ.get("LLM_MODEL", DEFAULT_MODELS["groq"])
+    models = _ordered_models(
+        os.environ.get("GROQ_MODEL", "").strip(),
+        _env("LLM_MODEL") if _model_matches_provider("groq", _env("LLM_MODEL")) else "",
+        DEFAULT_MODELS["groq"],
+        *GROQ_FALLBACK_MODELS,
+    )
     api_key = _env("GROQ_API_KEY")
 
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.7,
-        "max_tokens": 800,
-    }
+
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers=headers,
-            json=payload,
-        )
-        if response.status_code != 200:
-            detail = response.text[:300]
+        for model in models:
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 800,
+            }
+            response = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json=payload,
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
+
+            detail = response.text[:500]
+            if response.status_code in (400, 403, 404) and (
+                "model" in detail.lower()
+                or "does not exist" in detail.lower()
+                or "do not have access" in detail.lower()
+            ):
+                continue
+
             raise HTTPException(
                 status_code=502,
-                detail=f"Groq API error ({response.status_code}): {detail}",
+                detail="The AI Mentor provider could not complete the request.",
             )
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+
+    raise HTTPException(
+        status_code=502,
+        detail=(
+            "No configured Groq chat model is available for this API key. "
+            "Set GROQ_MODEL to a model listed in the Groq project models page."
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
