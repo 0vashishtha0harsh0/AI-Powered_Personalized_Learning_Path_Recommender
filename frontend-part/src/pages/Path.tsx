@@ -1,5 +1,5 @@
 import {
-  Check, Lock, Play, Clock3, Sparkles, ArrowRight
+  Check, Lock, Play, Clock3, Info, ArrowRight
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -67,9 +67,9 @@ export default function Path() {
 
         <aside className="path-detail card">
           <div className="ai-head">
-            <div className="ai-icon"><Sparkles size={18} /></div>
+            <div className="ai-icon"><Info size={16} /></div>
             <div>
-              <span className="tag">PATH NODE</span>
+              <span className="tag">DETAIL</span>
               <h3>{selected.title}</h3>
             </div>
           </div>

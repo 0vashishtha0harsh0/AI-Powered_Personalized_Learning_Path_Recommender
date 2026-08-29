@@ -22,12 +22,12 @@ export default function Profile() {
 
   return (
     <>
-      <SectionTitle title="Learner profile" text="The context PathAI uses to personalize your journey." />
+      <SectionTitle title="Learner profile" text="Your profile helps personalize your learning journey." />
 
       <div className="profile-card card">
         <div className="profile-avatar"><UserRound size={31} /></div>
         <div>
-          <span className="tag">LEARNER</span>
+          <span className="tag">PROFILE</span>
           {editing ? <input className="profile-input" value={name} onChange={e => setName(e.target.value)} /> : <h2>{learner.name}</h2>}
           <p className="muted">{editing ? `${level} · ${style}` : `${learner.level} · ${learner.style}`}</p>
         </div>

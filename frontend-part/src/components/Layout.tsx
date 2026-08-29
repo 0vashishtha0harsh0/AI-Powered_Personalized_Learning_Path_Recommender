@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { NavLink, Outlet } from "react-router-dom";
 import {
-  NavLink,
-  Outlet
-} from "react-router-dom";
-
-import {
-  Brain,
+  BookOpen,
   Home,
   Map,
   MessageCircle,
@@ -13,20 +9,19 @@ import {
   UserRound,
   Menu,
   X,
-  Target
+  Target,
 } from "lucide-react";
-
 import { getLearningData } from "../data/mock";
 import { PATHAI_STATE_CHANGED } from "../state";
 import { clearSession } from "../api";
 
 const nav = [
   ["/", "Dashboard", Home],
-  ["/path", "My Learning Path", Map],
-  ["/mentor", "AI Mentor", MessageCircle],
-  ["/skills", "Skill Map", Brain],
+  ["/path", "My Path", Map],
+  ["/mentor", "Mentor", MessageCircle],
+  ["/skills", "Skills", BookOpen],
   ["/progress", "Progress", BarChart3],
-  ["/profile", "Profile", UserRound]
+  ["/profile", "Profile", UserRound],
 ];
 
 export default function Layout() {
@@ -49,14 +44,14 @@ export default function Layout() {
     <div className="app">
       <aside className={open ? "sidebar show" : "sidebar"}>
         <div className="brand">
-          <div className="logo"><Brain size={19} /></div>
+          <div className="logo"><BookOpen size={17} /></div>
           <span>PathAI</span>
           <button className="close" onClick={() => setOpen(false)}>
-            <X size={19} />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="nav-label">Workspace</div>
+        <div className="nav-label">Navigation</div>
         <nav>
           {nav.map(([to, label, Icon]: any) => (
             <NavLink
@@ -65,15 +60,15 @@ export default function Layout() {
               end={to === "/"}
               onClick={() => setOpen(false)}
             >
-              <Icon size={18} />
+              <Icon size={17} />
               <span>{label}</span>
             </NavLink>
           ))}
         </nav>
 
         <div className="side-goal">
-          <div className="mini-icon"><Target size={16} /></div>
-          <small>Your current goal</small>
+          <div className="mini-icon"><Target size={14} /></div>
+          <small>Current goal</small>
           <strong>{learner.goal}</strong>
           <div className="mini-progress">
             <span style={{ width: `${learner.progress}%` }} />
@@ -85,11 +80,11 @@ export default function Layout() {
       <main className="main">
         <header className="topbar">
           <button className="menu" onClick={() => setOpen(true)}>
-            <Menu size={21} />
+            <Menu size={20} />
           </button>
           <div className="top-title">Learning workspace</div>
           <div className="top-user">
-            <div className="avatar">A</div>
+            <div className="avatar">{(learner.name || "U")[0].toUpperCase()}</div>
             <span>{learner.name}</span>
             <button className="signout" onClick={() => { clearSession(); window.location.href = "/login"; }}>Sign out</button>
           </div>

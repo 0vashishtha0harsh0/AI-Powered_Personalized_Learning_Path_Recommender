@@ -1,4 +1,4 @@
-import { ArrowRight, Brain, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { createRecommendation, getSkills, saveLearnerProfile, saveRecommendation } from "../api";
@@ -48,13 +48,12 @@ export default function Onboarding() {
 
   return (
     <main className="onboarding">
-      <div className="onboard-glow" />
-      <div className="onboard-logo"><Brain size={19} /> PathAI</div>
+      <div className="onboard-logo"><BookOpen size={17} /> PathAI</div>
       <div className="onboard-content">
-        <span className="eyebrow"><Sparkles size={14} /> AI-POWERED LEARNING</span>
+        <span className="eyebrow"><Sparkles size={14} /> PERSONALIZED LEARNING</span>
         <h1>Your goal.<br /><em>Your path.</em></h1>
         <p>
-          Tell PathAI where you want to go. We'll turn your skills,
+          Tell us where you want to go. We'll turn your skills,
           experience and goals into a personalized learning journey.
         </p>
         <div className="goal-input">

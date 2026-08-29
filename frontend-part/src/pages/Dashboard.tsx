@@ -1,5 +1,5 @@
 import {
-  ArrowRight, Clock3, Flame, Sparkles, Target, Trophy
+  ArrowRight, Clock3, Flame, MessageCircle, Target, Trophy
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -33,12 +33,12 @@ export default function Dashboard() {
     <>
       <div className="hero">
         <div>
-          <span className="eyebrow">PERSONALIZED LEARNING</span>
-          <h1>Good evening, {learner.name} <span>✦</span></h1>
-          <p>Your personalized journey is built around this goal.</p>
+          <span className="eyebrow">DASHBOARD</span>
+          <h1>Welcome back, {learner.name} <span>→</span></h1>
+          <p>Your personalized learning journey continues here.</p>
         </div>
         <Link className="btn ghost" to="/mentor">
-          <Sparkles size={16} /> Ask PathAI
+          <MessageCircle size={16} /> Ask Mentor
         </Link>
       </div>
 
@@ -47,7 +47,7 @@ export default function Dashboard() {
           <div className="goal-top">
             <span>YOUR GOAL</span>
             <strong>{learner.goal}</strong>
-            <small className="career-match">Recommended career: {savedCareerTitle()}</small>
+            <small className="career-match">Target: {savedCareerTitle()}</small>
           </div>
           <div className="big-progress">
             <span style={{ width: `${completion}%` }} />
@@ -69,51 +69,51 @@ export default function Dashboard() {
 
       <div className="grid-2">
         <div className="card next-card">
-          <SectionTitle title="Your next best action" />
+          <SectionTitle title="Next step" />
           <div className="next-head">
-            <div className="course-icon"><Sparkles size={21} /></div>
+            <div className="course-icon"><ArrowRight size={20} /></div>
             <div>
-              <span className="tag">RECOMMENDED NEXT</span>
+              <span className="tag">RECOMMENDED</span>
               <h3>{next.title}</h3>
             </div>
           </div>
           <p className="muted">{next.reason}</p>
           <div className="meta">
-            <span><Clock3 size={15} /> {next.time}</span>
+            <span><Clock3 size={14} /> {next.time}</span>
             <span>● {next.level}</span>
           </div>
           <Link className="btn primary full" to="/path">
-            Start learning <ArrowRight size={16} />
+            Start learning <ArrowRight size={15} />
           </Link>
         </div>
 
         <div className="card ai-card">
           <div className="ai-head">
-            <div className="ai-icon"><Sparkles size={18} /></div>
+            <div className="ai-icon"><Target size={16} /></div>
             <div>
-              <span className="tag">PATHAI INSIGHT</span>
-              <h3>Why this recommendation?</h3>
+              <span className="tag">HOW IT WORKS</span>
+              <h3>Why these recommendations?</h3>
             </div>
           </div>
           <p>
-            Your recommendations are generated from your target occupation,
-            current skills and identified learning gaps.
+            Your roadmap is built from your target role, current skills,
+            and identified learning gaps.
           </p>
           <div className="reason-list">
             <span>✓ Matches your target role</span>
             <span>✓ Builds on completed prerequisites</span>
-            <span>✓ Addresses your highest-priority skill gap</span>
+            <span>✓ Addresses your top skill gap</span>
           </div>
           <Link to="/mentor" className="text-link">
-            Ask PathAI about this <ArrowRight size={15} />
+            Ask mentor about this <ArrowRight size={14} />
           </Link>
         </div>
       </div>
 
       <div className="card">
         <SectionTitle
-          title="Skill fingerprint"
-          text="Your current strengths and development areas"
+          title="Your skills"
+          text="Current strengths and development areas"
         />
         <div className="skill-list">
           {skills.map(([name, value]) => (

@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,11 +9,21 @@ from src.api.routes.auth import router as auth_router
 from src.api.routes.profile import router as profile_router
 from src.api.routes.skills import router as skills_router
 from src.api.routes.mentor import router as mentor_router
+from src.api.services.gemini_key_manager import initialize_key_manager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: initialize the Gemini key rotation pool
+    await initialize_key_manager()
+    yield
+    # Shutdown: nothing to clean up
 
 
 app = FastAPI(
     title="Personalized Learning Path Recommender API",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

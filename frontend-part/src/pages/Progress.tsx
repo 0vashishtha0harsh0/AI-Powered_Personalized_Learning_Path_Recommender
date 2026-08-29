@@ -10,8 +10,7 @@ export default function Progress() {
   return (
     <>
       <SectionTitle
-        title="Progress"
-        text="Track learning momentum, milestones and career readiness."
+        title="Progress"          text="Track milestones, learning activity, and readiness."
       />
 
       <div className="stats">

@@ -1,4 +1,4 @@
-import { Bot, Send, Sparkles, User, Loader2, AlertTriangle } from "lucide-react";
+import { MessageCircle, Send, User, Loader2, AlertTriangle } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { API_URL, clearSession, getToken } from "../api";
 
@@ -26,7 +26,7 @@ export default function Mentor() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hey! I know your goal, progress and current skill gaps. What do you want to figure out?"
+      content: "Hi! I can help with your learning path, skills, and next steps. What would you like to know?"
     }
   ]);
   const [loading, setLoading] = useState(false);
@@ -108,10 +108,10 @@ export default function Mentor() {
   return (
     <div className="mentor-page">
       <div className="mentor-title">
-        <div className="ai-icon large"><Bot size={25} /></div>
+        <div className="ai-icon large"><MessageCircle size={22} /></div>
         <div>
-          <span className="eyebrow">YOUR LEARNING COPILOT</span>
-          <h1>PathAI Mentor</h1>
+          <span className="eyebrow">AI MENTOR</span>
+          <h1>Learning Mentor</h1>
           <p>Ask questions about your path, skills or next steps.</p>
         </div>
       </div>
@@ -132,14 +132,14 @@ export default function Mentor() {
           {messages.map((m, i) => (
             <div className={m.role === "assistant" ? "message ai" : "message user"} key={i}>
               <div className="message-icon">
-                {m.role === "assistant" ? <Sparkles size={15} /> : <User size={15} />}
+                {m.role === "assistant" ? <MessageCircle size={14} /> : <User size={14} />}
               </div>
               <p style={{ whiteSpace: "pre-wrap" }}>{m.content}</p>
             </div>
           ))}
           {loading && (
             <div className="message ai">
-              <div className="message-icon"><Sparkles size={15} /></div>
+              <div className="message-icon"><MessageCircle size={14} /></div>
               <p style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Loader2 size={14} className="spin" /> Thinking...
               </p>
@@ -161,7 +161,7 @@ export default function Mentor() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && !loading && send()}
-            placeholder={notConfigured ? "Set GEMINI_API_KEY on backend to enable" : "Ask PathAI anything..."}
+            placeholder={notConfigured ? "Set GEMINI_API_KEY on backend to enable" : "Ask me anything..."}
             disabled={loading}
           />
           <button onClick={() => send()} disabled={loading || !input.trim()}>

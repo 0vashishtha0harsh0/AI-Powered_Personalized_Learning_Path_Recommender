@@ -8,7 +8,8 @@
 #   ./run.sh frontend     # start only the frontend
 #
 # Environment variables (optional):
-#   GEMINI_API_KEY        Enable AI Mentor with Google Gemini (default)
+#   GEMINI_API_KEY        Enable AI Mentor with Google Gemini (primary, supports comma-separated keys)
+#   GROQ_API_KEY          Enable AI Mentor with Groq (fast free fallback)
 #   OPENAI_API_KEY        Enable AI Mentor with OpenAI (fallback)
 #   ANTHROPIC_API_KEY     Enable AI Mentor with Claude (fallback)
 #   LLM_MODEL             Override model (default: gemini-2.0-flash)
@@ -133,13 +134,19 @@ print_banner() {
     echo -e "  ${GREEN}API Docs${NC}  → http://localhost:${BACKEND_PORT}/docs"
     echo ""
     if [ -n "$GEMINI_API_KEY" ]; then
-        echo -e "  ${CYAN}AI Mentor${NC} → Google Gemini (${LLM_MODEL:-gemini-2.0-flash})"
-    elif [ -n "$OPENAI_API_KEY" ]; then
+        echo -e "  ${CYAN}AI Mentor${NC} → Gemini (${LLM_MODEL:-gemini-2.0-flash})"
+    fi
+    if [ -n "$GROQ_API_KEY" ]; then
+        echo -e "  ${CYAN}AI Mentor${NC} → Groq (${LLM_MODEL:-llama-3.3-70b-versatile}) [fast fallback]"
+    fi
+    if [ -n "$OPENAI_API_KEY" ]; then
         echo -e "  ${CYAN}AI Mentor${NC} → OpenAI (${LLM_MODEL:-gpt-4o-mini})"
-    elif [ -n "$ANTHROPIC_API_KEY" ]; then
+    fi
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
         echo -e "  ${CYAN}AI Mentor${NC} → Anthropic Claude"
-    else
-        echo -e "  ${RED}AI Mentor${NC} → Not configured (set GEMINI_API_KEY)"
+    fi
+    if [ -z "$GEMINI_API_KEY" ] && [ -z "$GROQ_API_KEY" ] && [ -z "$OPENAI_API_KEY" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+        echo -e "  ${RED}AI Mentor${NC} → Not configured (set GEMINI_API_KEY or GROQ_API_KEY)"
     fi
     echo ""
     echo -e "  Press ${BOLD}Ctrl+C${NC} to stop all servers."

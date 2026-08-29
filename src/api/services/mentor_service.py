@@ -3,22 +3,26 @@ import httpx
 
 from fastapi import HTTPException
 
+from src.api.services.gemini_key_manager import get_gemini_api_key, get_key_manager
+
 # ---------------------------------------------------------------------------
 # LLM configuration
 # ---------------------------------------------------------------------------
 # Set your LLM provider key via environment variables:
-#   GEMINI_API_KEY=AIza...          (Google Gemini — default)
+#   GEMINI_API_KEY=AIza...          (Google Gemini — primary, supports comma-separated keys)
+#   GROQ_API_KEY=gsk_...            (Groq — fast fallback, OpenAI-compatible)
 #   OPENAI_API_KEY=sk-...           (OpenAI / OpenRouter — fallback)
 #   ANTHROPIC_API_KEY=sk-ant-...    (Anthropic Claude — fallback)
 #
 # Override model:
-#   LLM_MODEL=gemini-3.6-flash      (default)
+#   LLM_MODEL=gemini-2.0-flash      (default)
 
 def _env(name: str) -> str:
     return os.environ.get(name, "").strip()
 
 DEFAULT_MODELS = {
-    "gemini": "gemini-3.6-flash",
+    "gemini": "gemini-2.0-flash",
+    "groq": "llama-3.3-70b-versatile",
     "openai": "gpt-4o-mini",
     "anthropic": "claude-sonnet-4-20250514",
 }
@@ -40,9 +44,14 @@ Core rules:
 
 
 def _get_provider():
-    """Detect which LLM provider is configured. Gemini is preferred."""
-    if _env("GEMINI_API_KEY"):
+    """Detect the primary LLM provider. Gemini is preferred, Groq is fallback."""
+    # Check if the key manager has working Gemini keys
+    key = get_gemini_api_key()
+    if key:
         return "gemini"
+    # Groq is the next preferred (fast, free, OpenAI-compatible)
+    if _env("GROQ_API_KEY"):
+        return "groq"
     if _env("OPENAI_API_KEY"):
         return "openai"
     if _env("ANTHROPIC_API_KEY"):
@@ -50,9 +59,14 @@ def _get_provider():
     return None
 
 
+def _has_groq() -> bool:
+    """Check if Groq is available as a fallback provider."""
+    return bool(_env("GROQ_API_KEY"))
+
+
 def _get_model(provider: str) -> str:
     """Get the model name, respecting LLM_MODEL override."""
-    return os.environ.get("LLM_MODEL", DEFAULT_MODELS.get(provider, "gemini-3.6-flash"))
+    return os.environ.get("LLM_MODEL", DEFAULT_MODELS.get(provider, "gemini-2.0-flash"))
 
 
 def _build_user_message(question: str, context: dict) -> str:
@@ -85,7 +99,21 @@ def _build_user_message(question: str, context: dict) -> str:
 # Gemini
 # ---------------------------------------------------------------------------
 async def _call_gemini(messages: list[dict]) -> str:
-    """Call Google Gemini API (generativelanguage.googleapis.com)."""
+    """Call Google Gemini API using the rotating key pool.
+
+    Tries each working key in round-robin order. If a key fails with 429
+    (rate limit) or 403 (forbidden), it is removed from rotation and the
+    next key is tried.
+    """
+    key_manager = get_key_manager()
+    working_keys = key_manager._working_keys  # noqa: access internal for retry loop
+
+    if not working_keys:
+        raise HTTPException(
+            status_code=503,
+            detail="No working Gemini API keys available.",
+        )
+
     model = _get_model("gemini")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
@@ -112,28 +140,84 @@ async def _call_gemini(messages: list[dict]) -> str:
     if system_instruction:
         payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
 
-    headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": _env("GEMINI_API_KEY"),
-    }
+    last_error = None
+    # Try up to len(working_keys) times, rotating through available keys
+    for attempt in range(len(working_keys)):
+        api_key = get_gemini_api_key()
+        if not api_key:
+            break
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(url, headers=headers, json=payload)
-        if response.status_code != 200:
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key,
+        }
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+
+            if response.status_code == 200:
+                data = response.json()
+                candidates = data.get("candidates", [])
+                if not candidates:
+                    raise HTTPException(
+                        status_code=502,
+                        detail="Gemini returned no candidates.",
+                    )
+                parts = candidates[0].get("content", {}).get("parts", [])
+                return parts[0]["text"] if parts else ""
+
+            # Rate limited or forbidden — rotate to next key
+            if response.status_code in (429, 403):
+                key_manager.mark_key_failed(api_key)
+                last_error = f"Key ...{api_key[-6:]} returned {response.status_code}"
+                continue
+
+            # Other errors — don't rotate, raise immediately
             detail = response.text[:300]
             raise HTTPException(
                 status_code=502,
                 detail=f"Gemini API error ({response.status_code}): {detail}",
             )
-        data = response.json()
-        candidates = data.get("candidates", [])
-        if not candidates:
+
+    # All keys exhausted
+    raise HTTPException(
+        status_code=502,
+        detail=f"All Gemini API keys exhausted. Last error: {last_error}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Groq (fast fallback — OpenAI-compatible)
+# ---------------------------------------------------------------------------
+async def _call_groq(messages: list[dict]) -> str:
+    """Call Groq API (OpenAI-compatible, ultra-fast LPU inference)."""
+    model = os.environ.get("LLM_MODEL", DEFAULT_MODELS["groq"])
+    api_key = _env("GROQ_API_KEY")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 800,
+    }
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=payload,
+        )
+        if response.status_code != 200:
+            detail = response.text[:300]
             raise HTTPException(
                 status_code=502,
-                detail="Gemini returned no candidates.",
+                detail=f"Groq API error ({response.status_code}): {detail}",
             )
-        parts = candidates[0].get("content", {}).get("parts", [])
-        return parts[0]["text"] if parts else ""
+        data = response.json()
+        return data["choices"][0]["message"]["content"]
 
 
 # ---------------------------------------------------------------------------
@@ -253,6 +337,15 @@ async def chat_with_mentor(
     """
     provider = _get_provider()
     if not provider:
+        key_status = get_key_manager().get_status()
+        if key_status["total_keys"] > 0 and key_status["working_keys"] == 0:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "All configured Gemini API keys failed validation. "
+                    "Please check your GEMINI_API_KEY environment variable."
+                ),
+            )
         raise HTTPException(
             status_code=503,
             detail=(
@@ -278,9 +371,17 @@ async def chat_with_mentor(
 
     messages.append({"role": "user", "content": user_message})
 
-    if provider == "gemini":
-        return await _call_gemini(messages)
-    elif provider == "anthropic":
-        return await _call_anthropic(messages)
-    else:
-        return await _call_openai(messages)
+    try:
+        if provider == "gemini":
+            return await _call_gemini(messages)
+        elif provider == "groq":
+            return await _call_groq(messages)
+        elif provider == "anthropic":
+            return await _call_anthropic(messages)
+        else:
+            return await _call_openai(messages)
+    except HTTPException:
+        # If Gemini failed and Groq is available, try Groq as fallback
+        if provider == "gemini" and _has_groq():
+            return await _call_groq(messages)
+        raise

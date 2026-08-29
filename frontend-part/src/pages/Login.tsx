@@ -1,4 +1,4 @@
-import { ArrowRight, Brain, LockKeyhole, Mail } from "lucide-react";
+import { ArrowRight, BookOpen, LockKeyhole, Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authenticate } from "../api";
@@ -27,9 +27,9 @@ export default function Login() {
 
   return <main className="auth-page">
     <div className="auth-panel">
-      <div className="onboard-logo"><div className="logo"><Brain size={19} /></div> PathAI</div>
-      <span className="eyebrow">PERSONALIZED LEARNING WORKSPACE</span>
-      <h1>{register ? "Create your learning account." : "Welcome back to your path."}</h1>
+      <div className="onboard-logo"><div className="logo"><BookOpen size={17} /></div> PathAI</div>
+      <span className="eyebrow">PERSONALIZED LEARNING</span>
+      <h1>{register ? "Create your account" : "Welcome back"}</h1>
       <p className="muted">Your account keeps your goal, skills, progress and recommendations together.</p>
       <form onSubmit={submit}>
         <label><Mail size={15} /> Email<input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" /></label>

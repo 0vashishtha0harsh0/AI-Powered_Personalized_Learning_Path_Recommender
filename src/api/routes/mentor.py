@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 
 from src.api.schemas.mentor import MentorChatRequest, MentorChatResponse
 from src.api.services.mentor_service import chat_with_mentor, _get_provider, _get_model
+from src.api.services.gemini_key_manager import get_key_manager
 from src.api.routes.auth import current_user
 
 
@@ -29,8 +30,16 @@ def mentor_status():
     """Check if AI Mentor is configured and available."""
     provider = _get_provider()
     model = _get_model(provider) if provider else "none"
+    key_status = get_key_manager().get_status()
     return {
         "configured": provider is not None,
         "provider": provider or "none",
         "model": model,
+        "key_pool": key_status,
     }
+
+
+@router.get("/keys")
+def key_status():
+    """Return the Gemini key pool status (admin endpoint)."""
+    return get_key_manager().get_status()

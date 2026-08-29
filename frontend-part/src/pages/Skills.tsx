@@ -1,4 +1,4 @@
-import { AlertTriangle, Brain, Sparkles } from "lucide-react";
+import { AlertTriangle, BarChart3, Zap } from "lucide-react";
 import { useState } from "react";
 import ProgressBar from "../components/ProgressBar";
 import SectionTitle from "../components/SectionTitle";
@@ -58,8 +58,8 @@ export default function Skills() {
       <div className="grid-2">
         <div className="card">
           <div className="card-head">
-            <div><span className="tag">SKILL FINGERPRINT</span><h3>Current abilities</h3></div>
-            <Brain size={20} />
+            <div><span className="tag">CURRENT SKILLS</span><h3>Abilities</h3></div>
+            <BarChart3 size={20} />
           </div>
           <div className="skill-list large">
             {skills.map(([name, value]) => (
@@ -87,7 +87,7 @@ export default function Skills() {
             </div>
           ))}
           <button className="btn primary full" onClick={buildGapPlan} disabled={busy}>
-            <Sparkles size={16} /> {busy ? phase || "Building gap plan" : "Build gap plan"}
+            <Zap size={15} /> {busy ? phase || "Building plan" : "Build learning plan"}
           </button>
         </div>
       </div>
