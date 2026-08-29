@@ -91,28 +91,6 @@ nav a.active {
   font-weight: 600;
 }
 
-.side-goal {
-  margin-top: auto;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-alt);
-}
-.side-goal small { display: block; color: var(--text-tertiary); font-size: 11px; margin-top: 4px; }
-.side-goal strong { display: block; font-size: 13px; margin-top: 2px; color: var(--text); }
-
-.mini-icon {
-  width: 28px; height: 28px;
-  display: grid; place-items: center;
-  border-radius: var(--radius-sm);
-  background: var(--accent-light); color: var(--accent);
-}
-.mini-progress {
-  height: 4px; margin-top: 12px;
-  border-radius: 99px; background: var(--border); overflow: hidden;
-}
-.mini-progress span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .6s ease; }
-
 .main { width: 100%; margin-left: 240px; }
 
 /* ---- topbar ---- */

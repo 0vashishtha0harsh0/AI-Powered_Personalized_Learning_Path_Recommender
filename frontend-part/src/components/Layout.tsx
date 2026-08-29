@@ -9,7 +9,6 @@ import {
   UserRound,
   Menu,
   X,
-  Target,
 } from "lucide-react";
 import { getLearningData } from "../data/mock";
 import { PATHAI_STATE_CHANGED } from "../state";
@@ -66,15 +65,6 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="side-goal">
-          <div className="mini-icon"><Target size={14} /></div>
-          <small>Current goal</small>
-          <strong>{learner.goal}</strong>
-          <div className="mini-progress">
-            <span style={{ width: `${learner.progress}%` }} />
-          </div>
-          <small>{learner.progress}% complete</small>
-        </div>
       </aside>
 
       <main className="main">
